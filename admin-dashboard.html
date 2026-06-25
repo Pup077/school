@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="admin">
+    <main class="admin-shell">
+        <aside class="admin-sidebar">
+            <img src="img/Colour.png" alt="ตราสัญลักษณ์โรงเรียน">
+            <h1>Admin Dashboard</h1>
+            <p>จัดการข่าวประชาสัมพันธ์ งาน และจัดซื้อจัดจ้าง</p>
+            <nav>
+                <a class="active" href="admin-dashboard.html">จัดการข่าวทั้งหมด</a>
+                <a href="#admin-members">จัดการสมาชิก Admin</a>
+                <a href="#admin-history">ประวัติการแก้ไข</a>
+                <a href="index.html">กลับหน้าเว็บไซต์</a>
+            </nav>
+            <button class="admin-logout" type="button" data-admin-logout>ออกจากระบบ</button>
+        </aside>
+
+        <section class="admin-content">
+            <div class="admin-heading">
+                <div>
+                    <span>NEWS MANAGER</span>
+                    <h2>เพิ่ม แก้ไข และเผยแพร่ข่าว</h2>
+                </div>
+                <button type="button" data-new-news>เพิ่มข่าวใหม่</button>
+            </div>
+
+            <div class="admin-grid">
+                <form class="admin-editor" data-news-form>
+                    <input type="hidden" name="id">
+                    <label>
+                        <span>ประเภทข่าว</span>
+                        <select name="type">
+                            <option value="public">ข่าวประชาสัมพันธ์</option>
+                            <option value="job">ข่าวรับสมัครงาน</option>
+                            <option value="procurement">ข่าวจัดซื้อจัดจ้าง</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span>หัวข้อ / รายการ</span>
+                        <input type="text" name="title" required>
+                    </label>
+                    <label>
+                        <span>รายละเอียดสั้น</span>
+                        <textarea name="summary" rows="5" required></textarea>
+                    </label>
+                    <div class="admin-form-row">
+                        <label>
+                            <span>หมวดหมู่</span>
+                            <input type="text" name="category" placeholder="ข่าวเด่น">
+                        </label>
+                        <label>
+                            <span>วันที่ / ช่วงเวลา</span>
+                            <input type="text" name="date" placeholder="12 พฤษภาคม 2569">
+                        </label>
+                    </div>
+                    <div class="admin-form-row">
+                        <label>
+                            <span>ผู้เผยแพร่</span>
+                            <input type="text" name="author" placeholder="งานประชาสัมพันธ์">
+                        </label>
+                        <label>
+                            <span>สถานะเผยแพร่</span>
+                            <select name="status">
+                                <option value="published">เผยแพร่</option>
+                                <option value="draft">ฉบับร่าง</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="admin-form-row">
+                        <label>
+                            <span>เลขที่ประกาศ</span>
+                            <input type="text" name="announcementNo" placeholder="พญ. 03/2569">
+                        </label>
+                        <label>
+                            <span>สถานะหน้าเว็บ</span>
+                            <input type="text" name="displayStatus" placeholder="เปิดรับสมัคร / เผยแพร่">
+                        </label>
+                    </div>
+                    <div class="admin-form-row">
+                        <label>
+                            <span>ข้อมูลบรรทัดที่ 1</span>
+                            <input type="text" name="metaOne" placeholder="รับสมัคร: 10-24 พฤษภาคม 2569">
+                        </label>
+                        <label>
+                            <span>ข้อมูลบรรทัดที่ 2</span>
+                            <input type="text" name="metaTwo" placeholder="คุณวุฒิ: ปริญญาตรีสาขาที่เกี่ยวข้อง">
+                        </label>
+                    </div>
+                    <label>
+                        <span>ลิงก์รูปภาพ (ใช้กับข่าวประชาสัมพันธ์)</span>
+                        <input type="url" name="image" placeholder="https://...">
+                    </label>
+                    <div class="admin-actions">
+                        <button type="submit">บันทึกข่าว</button>
+                        <button class="secondary" type="button" data-reset-news>ล้างฟอร์ม</button>
+                    </div>
+                    <p class="admin-status" data-admin-status></p>
+                </form>
+
+                <div class="admin-news-list" data-admin-news-list></div>
+            </div>
+
+            <section class="admin-section" id="admin-members">
+                <div class="admin-heading compact">
+                    <div>
+                        <span>ADMIN MEMBERS</span>
+                        <h2>ระบบจัดการสมาชิก Admin</h2>
+                    </div>
+                </div>
+                <div class="admin-management-grid">
+                    <form class="admin-editor" data-admin-member-form>
+                        <input type="hidden" name="id">
+                        <label>
+                            <span>ชื่อ-สกุล</span>
+                            <input type="text" name="fullName" required>
+                        </label>
+                        <label>
+                            <span>ชื่อผู้ใช้</span>
+                            <input type="text" name="username" autocomplete="off" required>
+                        </label>
+                        <div class="admin-form-row">
+                            <label>
+                                <span>รหัสผ่าน</span>
+                                <input type="password" name="password" minlength="6" required>
+                            </label>
+                            <label>
+                                <span>สิทธิ์</span>
+                                <select name="role">
+                                    <option value="admin">Admin</option>
+                                    <option value="editor">Editor</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="admin-actions">
+                            <button type="submit">บันทึกสมาชิก</button>
+                            <button class="secondary" type="button" data-reset-admin-member>ล้างฟอร์ม</button>
+                        </div>
+                        <p class="admin-status" data-admin-member-status></p>
+                    </form>
+
+                    <div class="admin-member-list" data-admin-member-list></div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="admin-history">
+                <div class="admin-heading compact">
+                    <div>
+                        <span>EDIT HISTORY</span>
+                        <h2>ประวัติการแก้ไขล่าสุด</h2>
+                    </div>
+                    <button type="button" data-clear-audit-log>ล้างประวัติ</button>
+                </div>
+                <div class="admin-history-list" data-admin-history-list></div>
+            </section>
+        </section>
+    </main>
+
+    <script src="site-news.js"></script>
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ลงทะเบียน Admin - โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="admin-register">
+    <main class="admin-register-page">
+        <section class="admin-register-card">
+            <div class="admin-register-brand">
+                <img src="img/Colour.png" alt="ตราสัญลักษณ์โรงเรียน">
+                <div>
+                    <span>ADMIN REGISTER</span>
+                    <h1>ลงทะเบียนผู้ดูแลระบบ</h1>
+                    <p>สร้างบัญชีสำหรับจัดการข่าว ประกาศ และข้อมูลบนเว็บไซต์โรงเรียน</p>
+                </div>
+            </div>
+
+            <form class="admin-login-form admin-register-form" data-admin-register-form>
+                <label>
+                    <span>ชื่อ-สกุล</span>
+                    <input type="text" name="fullName" autocomplete="name" required>
+                </label>
+                <label>
+                    <span>ชื่อผู้ใช้</span>
+                    <input type="text" name="username" autocomplete="username" required>
+                </label>
+                <div class="admin-form-row">
+                    <label>
+                        <span>รหัสผ่าน</span>
+                        <input type="password" name="password" autocomplete="new-password" minlength="6" required>
+                    </label>
+                    <label>
+                        <span>ยืนยันรหัสผ่าน</span>
+                        <input type="password" name="confirmPassword" autocomplete="new-password" minlength="6" required>
+                    </label>
+                </div>
+                <label>
+                    <span>สิทธิ์การใช้งาน</span>
+                    <select name="role">
+                        <option value="editor">Editor - จัดการข่าว</option>
+                        <option value="admin">Admin - จัดการระบบทั้งหมด</option>
+                    </select>
+                </label>
+                <button type="submit">บันทึกการลงทะเบียน</button>
+                <p class="admin-login-message" data-admin-register-message></p>
+            </form>
+
+            <div class="admin-register-actions">
+                <a href="index.html">กลับหน้าเข้าสู่ระบบ</a>
+                <a href="admin-dashboard.html">ไปที่ Dashboard</a>
+            </div>
+        </section>
+    </main>
+
+    <script src="site-news.js"></script>
+</body>
+</html>
