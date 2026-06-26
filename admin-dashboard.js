@@ -16,10 +16,39 @@ const memberList = document.querySelector("[data-admin-member-list]");
 const memberStatusText = document.querySelector("[data-admin-member-status]");
 const historyList = document.querySelector("[data-admin-history-list]");
 
+let dbNews = [];
+let dbMembers = [];
+let currentAdminId = "";
+let historyPage = 1;
+
 const typeLabels = {
     public: "ข่าวประชาสัมพันธ์",
     job: "ข่าวรับสมัครงาน",
     procurement: "ข่าวจัดซื้อจัดจ้าง"
+};
+
+const actionLabels = {
+    login: "เข้าสู่ระบบ",
+    logout: "ออกจากระบบ",
+    create_news: "เพิ่มข่าว",
+    update_news: "แก้ไขข่าว",
+    delete_news: "ลบข่าว"
+};
+
+const apiRequest = async (url, options = {}) => {
+    const response = await fetch(url, {
+        headers: {
+            "Accept": "application/json",
+            ...(options.body ? { "Content-Type": "application/json" } : {})
+        },
+        cache: "no-store",
+        ...options
+    });
+    const data = await response.json();
+    if (!response.ok || !data.ok) {
+        throw new Error(data.message || "เกิดข้อผิดพลาด");
+    }
+    return data;
 };
 
 const emptyForm = () => {
@@ -38,7 +67,7 @@ const setStatus = (text, target = statusText) => {
     target.textContent = text;
     window.setTimeout(() => {
         target.textContent = "";
-    }, 2200);
+    }, 2600);
 };
 
 const adminMetaText = (item) => {
@@ -53,9 +82,18 @@ const adminMetaText = (item) => {
     return metaText(item);
 };
 
+const loadNews = async () => {
+    const data = await apiRequest("admin_news.php?action=list");
+    dbNews = data.news || [];
+};
+
 const renderAdminList = () => {
-    const items = getNews();
-    list.innerHTML = items.map((item) => `
+    if (!dbNews.length) {
+        list.innerHTML = `<p class="news-empty">ยังไม่มีข่าวในฐานข้อมูล</p>`;
+        return;
+    }
+
+    list.innerHTML = dbNews.map((item) => `
         <article class="admin-news-item">
             <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
             <div>
@@ -72,11 +110,21 @@ const renderAdminList = () => {
     `).join("");
 };
 
+const loadAdminMembers = async () => {
+    const data = await apiRequest("admin_members.php?action=list");
+    dbMembers = data.members || [];
+    currentAdminId = data.currentAdminId || "";
+};
+
 const renderAdminMembers = () => {
     if (!memberList) return;
 
-    const currentAdmin = getCurrentAdmin();
-    memberList.innerHTML = getAdminUsers().map((user) => `
+    if (!dbMembers.length) {
+        memberList.innerHTML = `<p class="news-empty">ยังไม่มีสมาชิก Admin ในฐานข้อมูล</p>`;
+        return;
+    }
+
+    memberList.innerHTML = dbMembers.map((user) => `
         <article class="admin-member-item">
             <div>
                 <span>${escapeHtml(user.role === "admin" ? "Admin" : "Editor")} / ${user.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}</span>
@@ -86,32 +134,54 @@ const renderAdminMembers = () => {
             </div>
             <div class="admin-item-actions">
                 <button type="button" data-edit-admin="${escapeHtml(user.id)}">แก้ไข</button>
-                <button type="button" data-toggle-admin="${escapeHtml(user.id)}" ${user.username === currentAdmin.username ? "disabled" : ""}>${user.status === "active" ? "ปิดใช้งาน" : "เปิดใช้งาน"}</button>
-                <button class="danger" type="button" data-delete-admin="${escapeHtml(user.id)}" ${user.username === currentAdmin.username ? "disabled" : ""}>ลบ</button>
+                <button type="button" data-toggle-admin="${escapeHtml(user.id)}" ${user.id === currentAdminId ? "disabled" : ""}>${user.status === "active" ? "ปิดใช้งาน" : "เปิดใช้งาน"}</button>
+                <button class="danger" type="button" data-delete-admin="${escapeHtml(user.id)}" ${user.id === currentAdminId ? "disabled" : ""}>ลบ</button>
             </div>
         </article>
     `).join("");
 };
 
-const renderAuditLogs = () => {
+const renderHistoryPager = (page, totalPages) => `
+    <div class="admin-pagination">
+        <button type="button" data-history-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>หน้าก่อน</button>
+        <span>หน้า ${escapeHtml(page)} / ${escapeHtml(totalPages)}</span>
+        <button type="button" data-history-page="${page + 1}" ${page >= totalPages ? "disabled" : ""}>หน้าถัดไป</button>
+    </div>
+`;
+
+const renderAuditLogs = async (page = historyPage) => {
     if (!historyList) return;
 
-    const logs = getAuditLogs();
-    if (!logs.length) {
-        historyList.innerHTML = `<p class="news-empty">ยังไม่มีประวัติการแก้ไข</p>`;
+    historyPage = page;
+    historyList.innerHTML = `<p class="news-empty">กำลังโหลดประวัติการใช้งาน...</p>`;
+
+    let data;
+    try {
+        data = await apiRequest(`admin_activity_logs.php?page=${encodeURIComponent(historyPage)}`);
+    } catch (error) {
+        historyList.innerHTML = `<p class="news-empty">โหลดประวัติการใช้งานไม่สำเร็จ</p>`;
         return;
     }
 
-    historyList.innerHTML = logs.slice(0, 40).map((log) => `
-        <article class="admin-history-item">
-            <div>
-                <span>${escapeHtml(log.action)} / ${escapeHtml(log.targetType)}</span>
-                <h3>${escapeHtml(log.targetName)}</h3>
-                <p>${escapeHtml(log.detail)}</p>
-            </div>
-            <small>${escapeHtml(log.actorName)} (${escapeHtml(log.actorUsername)})<br>${escapeHtml(formatDateTime(log.createdAt))}</small>
-        </article>
-    `).join("");
+    const logs = Array.isArray(data.logs) ? data.logs : [];
+    if (!logs.length) {
+        historyList.innerHTML = `<p class="news-empty">ยังไม่มีประวัติการใช้งาน</p>`;
+        return;
+    }
+
+    historyList.innerHTML = `
+        ${logs.map((log) => `
+            <article class="admin-history-item">
+                <div>
+                    <span>${escapeHtml(actionLabels[log.action] || log.action)} / ${escapeHtml(log.targetType)}</span>
+                    <h3>${escapeHtml(log.targetName || log.actorName || "-")}</h3>
+                    <p>${escapeHtml(log.detail || "-")} ${log.ipAddress ? `IP: ${escapeHtml(log.ipAddress)}` : ""}</p>
+                </div>
+                <small>${escapeHtml(log.actorName)} (${escapeHtml(log.actorUsername)})<br>${escapeHtml(formatDateTime(log.createdAt))}</small>
+            </article>
+        `).join("")}
+        ${renderHistoryPager(data.page || 1, data.totalPages || 1)}
+    `;
 };
 
 const fillForm = (item) => {
@@ -144,28 +214,35 @@ const fillMemberForm = (user) => {
     memberForm.elements.id.value = user.id;
     memberForm.elements.fullName.value = user.fullName || "";
     memberForm.elements.username.value = user.username || "";
-    memberForm.elements.password.value = user.password || "";
-    memberForm.elements.password.required = true;
+    memberForm.elements.password.value = "";
+    memberForm.elements.password.required = false;
+    memberForm.elements.password.placeholder = "เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยนรหัสผ่าน";
     memberForm.elements.role.value = user.role || "editor";
     memberForm.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
 const getFormValue = (formData, key) => String(formData.get(key) || "").trim();
 
-requireAdmin();
-emptyForm();
-emptyMemberForm();
-renderAdminList();
-renderAdminMembers();
-renderAuditLogs();
+const loadDashboard = async () => {
+    requireAdmin();
+    emptyForm();
+    emptyMemberForm();
 
-form.addEventListener("submit", (event) => {
+    try {
+        await Promise.all([loadNews(), loadAdminMembers(), renderAuditLogs(1)]);
+        renderAdminList();
+        renderAdminMembers();
+    } catch (error) {
+        setStatus(error.message || "โหลดข้อมูลจากฐานข้อมูลไม่สำเร็จ");
+    }
+};
+
+form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
-    const id = getFormValue(formData, "id");
     const type = getFormValue(formData, "type") || "public";
     const newsItem = {
-        id: id || `${type}-${Date.now()}`,
+        id: getFormValue(formData, "id"),
         type,
         title: getFormValue(formData, "title"),
         summary: getFormValue(formData, "summary"),
@@ -183,154 +260,140 @@ form.addEventListener("submit", (event) => {
     if (type === "job" && !newsItem.displayStatus) newsItem.displayStatus = newsItem.category || "เปิดรับสมัคร";
     if (type === "procurement" && !newsItem.displayStatus) newsItem.displayStatus = "เผยแพร่";
 
-    const items = getNews();
-    const index = items.findIndex((item) => item.id === newsItem.id);
-    const action = index >= 0 ? "update_news" : "create_news";
-    if (index >= 0) {
-        items[index] = newsItem;
-    } else {
-        items.unshift(newsItem);
+    try {
+        const data = await apiRequest("admin_news.php?action=save", {
+            method: "POST",
+            body: JSON.stringify(newsItem)
+        });
+        await loadNews();
+        renderAdminList();
+        await renderAuditLogs(1);
+        emptyForm();
+        setStatus(data.message || "บันทึกข่าวเรียบร้อยแล้ว");
+    } catch (error) {
+        setStatus(error.message || "บันทึกข่าวไม่สำเร็จ");
     }
-
-    saveNews(items);
-    saveAuditLog({
-        action,
-        targetType: "news_item",
-        targetName: newsItem.title,
-        detail: `${index >= 0 ? "แก้ไข" : "เพิ่ม"}${typeLabels[newsItem.type] || "ข่าว"} สถานะ ${newsItem.status === "published" ? "เผยแพร่" : "ฉบับร่าง"}`
-    });
-    renderAdminList();
-    renderAuditLogs();
-    emptyForm();
-    setStatus("บันทึกข่าวเรียบร้อยแล้ว");
 });
 
-list.addEventListener("click", (event) => {
+list.addEventListener("click", async (event) => {
     const editId = event.target.dataset.editNews;
     const deleteId = event.target.dataset.deleteNews;
-    const items = getNews();
 
     if (editId) {
-        const item = items.find((newsItem) => newsItem.id === editId);
+        const item = dbNews.find((newsItem) => newsItem.id === editId);
         if (item) fillForm(item);
     }
 
     if (deleteId) {
-        const deletedItem = items.find((newsItem) => newsItem.id === deleteId);
-        const nextItems = items.filter((newsItem) => newsItem.id !== deleteId);
-        saveNews(nextItems);
-        saveAuditLog({
-            action: "delete_news",
-            targetType: "news_item",
-            targetName: deletedItem ? deletedItem.title : deleteId,
-            detail: "ลบข่าวออกจากระบบ"
-        });
-        renderAdminList();
-        renderAuditLogs();
-        emptyForm();
-        setStatus("ลบข่าวเรียบร้อยแล้ว");
+        const deletedItem = dbNews.find((newsItem) => newsItem.id === deleteId);
+        if (!deletedItem || !window.confirm(`ต้องการลบข่าว "${deletedItem.title}" ใช่หรือไม่`)) return;
+
+        try {
+            const data = await apiRequest("admin_news.php?action=delete", {
+                method: "POST",
+                body: JSON.stringify({ id: deleteId })
+            });
+            await loadNews();
+            renderAdminList();
+            await renderAuditLogs(1);
+            emptyForm();
+            setStatus(data.message || "ลบข่าวเรียบร้อยแล้ว");
+        } catch (error) {
+            setStatus(error.message || "ลบข่าวไม่สำเร็จ");
+        }
     }
 });
 
 if (memberForm) {
-    memberForm.addEventListener("submit", (event) => {
+    memberForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const formData = new FormData(memberForm);
-        const id = getFormValue(formData, "id");
-        const username = getFormValue(formData, "username");
-        const users = getAdminUsers();
-        const duplicate = users.some((user) => user.username.toLowerCase() === username.toLowerCase() && user.id !== id);
-
-        if (duplicate) {
-            setStatus("ชื่อผู้ใช้นี้ถูกใช้งานแล้ว", memberStatusText);
-            return;
-        }
-
         const userData = {
-            id: id || `admin-${Date.now()}`,
-            username,
+            id: getFormValue(formData, "id"),
+            username: getFormValue(formData, "username"),
             password: getFormValue(formData, "password"),
             fullName: getFormValue(formData, "fullName"),
-            role: getFormValue(formData, "role") || "editor",
-            status: "active",
-            createdAt: new Date().toISOString()
+            role: getFormValue(formData, "role") || "editor"
         };
-        const index = users.findIndex((user) => user.id === userData.id);
 
-        if (index >= 0) {
-            users[index] = { ...users[index], ...userData, createdAt: users[index].createdAt };
-        } else {
-            users.unshift(userData);
+        try {
+            const data = await apiRequest("admin_members.php?action=save", {
+                method: "POST",
+                body: JSON.stringify(userData)
+            });
+            await loadAdminMembers();
+            renderAdminMembers();
+            await renderAuditLogs(1);
+            emptyMemberForm();
+            setStatus(data.message || "บันทึกสมาชิกเรียบร้อยแล้ว", memberStatusText);
+        } catch (error) {
+            setStatus(error.message || "บันทึกสมาชิกไม่สำเร็จ", memberStatusText);
         }
-
-        saveAdminUsers(users);
-        saveAuditLog({
-            action: index >= 0 ? "update_admin" : "create_admin",
-            targetType: "admin_user",
-            targetName: userData.username,
-            detail: `${index >= 0 ? "แก้ไข" : "เพิ่ม"}สมาชิก Admin ${userData.fullName}`
-        });
-        renderAdminMembers();
-        renderAuditLogs();
-        emptyMemberForm();
-        setStatus("บันทึกสมาชิกเรียบร้อยแล้ว", memberStatusText);
     });
 }
 
 if (memberList) {
-    memberList.addEventListener("click", (event) => {
+    memberList.addEventListener("click", async (event) => {
         const editId = event.target.dataset.editAdmin;
         const toggleId = event.target.dataset.toggleAdmin;
         const deleteId = event.target.dataset.deleteAdmin;
-        const users = getAdminUsers();
-        const currentAdmin = getCurrentAdmin();
 
         if (editId) {
-            const user = users.find((adminUser) => adminUser.id === editId);
+            const user = dbMembers.find((adminUser) => adminUser.id === editId);
             if (user) fillMemberForm(user);
         }
 
         if (toggleId) {
-            const user = users.find((adminUser) => adminUser.id === toggleId);
-            if (!user || user.username === currentAdmin.username) return;
-            user.status = user.status === "active" ? "inactive" : "active";
-            saveAdminUsers(users);
-            saveAuditLog({
-                action: "toggle_admin_status",
-                targetType: "admin_user",
-                targetName: user.username,
-                detail: `${user.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}สมาชิก Admin ${user.fullName}`
-            });
-            renderAdminMembers();
-            renderAuditLogs();
+            try {
+                const data = await apiRequest("admin_members.php?action=toggle", {
+                    method: "POST",
+                    body: JSON.stringify({ id: toggleId })
+                });
+                await loadAdminMembers();
+                renderAdminMembers();
+                await renderAuditLogs(1);
+                setStatus(data.message || "อัปเดตสถานะสมาชิกเรียบร้อยแล้ว", memberStatusText);
+            } catch (error) {
+                setStatus(error.message || "อัปเดตสถานะสมาชิกไม่สำเร็จ", memberStatusText);
+            }
         }
 
         if (deleteId) {
-            const user = users.find((adminUser) => adminUser.id === deleteId);
-            if (!user || user.username === currentAdmin.username) return;
-            saveAdminUsers(users.filter((adminUser) => adminUser.id !== deleteId));
-            saveAuditLog({
-                action: "delete_admin",
-                targetType: "admin_user",
-                targetName: user.username,
-                detail: `ลบสมาชิก Admin ${user.fullName}`
-            });
-            renderAdminMembers();
-            renderAuditLogs();
-            emptyMemberForm();
+            const user = dbMembers.find((adminUser) => adminUser.id === deleteId);
+            if (!user || !window.confirm(`ต้องการลบสมาชิก "${user.username}" ใช่หรือไม่`)) return;
+
+            try {
+                const data = await apiRequest("admin_members.php?action=delete", {
+                    method: "POST",
+                    body: JSON.stringify({ id: deleteId })
+                });
+                await loadAdminMembers();
+                renderAdminMembers();
+                await renderAuditLogs(1);
+                emptyMemberForm();
+                setStatus(data.message || "ลบสมาชิกเรียบร้อยแล้ว", memberStatusText);
+            } catch (error) {
+                setStatus(error.message || "ลบสมาชิกไม่สำเร็จ", memberStatusText);
+            }
         }
+    });
+}
+
+if (historyList) {
+    historyList.addEventListener("click", (event) => {
+        const page = Number(event.target.dataset.historyPage || 0);
+        if (page > 0) renderAuditLogs(page);
     });
 }
 
 document.querySelector("[data-new-news]").addEventListener("click", emptyForm);
 document.querySelector("[data-reset-news]").addEventListener("click", emptyForm);
 document.querySelector("[data-reset-admin-member]").addEventListener("click", emptyMemberForm);
-document.querySelector("[data-clear-audit-log]").addEventListener("click", () => {
-    localStorage.setItem(ADMIN_AUDIT_STORAGE_KEY, JSON.stringify([]));
-    renderAuditLogs();
-});
+document.querySelector("[data-clear-audit-log]").addEventListener("click", () => renderAuditLogs(historyPage));
 document.querySelector("[data-admin-logout]").addEventListener("click", () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     sessionStorage.removeItem(ADMIN_SESSION_USER_KEY);
     window.location.href = "admin_logout.php";
 });
+
+loadDashboard();

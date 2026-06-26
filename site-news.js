@@ -5,6 +5,7 @@ const ADMIN_USERS_STORAGE_KEY = "schoolAdminUsers";
 const ADMIN_AUDIT_STORAGE_KEY = "schoolAdminAuditLogs";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
+let databaseNews = null;
 
 const defaultImage = "https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/55_125.webp";
 
@@ -244,6 +245,10 @@ const normalizeItem = (item) => ({
 });
 
 const getNews = () => {
+    if (Array.isArray(databaseNews)) {
+        return databaseNews.map(normalizeItem);
+    }
+
     try {
         const saved = JSON.parse(localStorage.getItem(NEWS_STORAGE_KEY) || "null");
         if (Array.isArray(saved)) {
@@ -495,6 +500,59 @@ const initAdminPhpMessages = () => {
     }
 };
 
+const formatRemainingMinutes = (seconds = 0) => {
+    const minutes = Math.max(1, Math.ceil(Number(seconds || 0) / 60));
+    return `${minutes} นาที`;
+};
+
+const initAdminSessionStatus = async () => {
+    const box = document.querySelector("[data-admin-session-box]");
+    const form = document.querySelector(".admin-login-panel .admin-login-form");
+    if (!box || !form) return;
+
+    try {
+        const response = await fetch("auth_status.php", {
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+        const data = await response.json();
+
+        if (!data.ok || !data.loggedIn || !data.user) {
+            box.hidden = true;
+            box.style.display = "none";
+            form.hidden = false;
+            form.style.display = "";
+            return;
+        }
+
+        form.hidden = true;
+        form.style.display = "none";
+        box.hidden = false;
+        box.style.display = "";
+        box.innerHTML = `
+            <strong>ยังอยู่ในระบบ</strong>
+            <p>${escapeHtml(data.user.fullName || data.user.username)} (${escapeHtml(data.user.role)})</p>
+            <small>Session จะหมดอายุในประมาณ ${escapeHtml(formatRemainingMinutes(data.remainingSeconds))}</small>
+            <div class="admin-session-actions">
+                <button type="button" data-admin-session-dashboard>เข้า Dashboard</button>
+                <button class="secondary" type="button" data-admin-session-logout>ออกจากระบบ</button>
+            </div>
+        `;
+
+        box.querySelector("[data-admin-session-dashboard]").addEventListener("click", () => {
+            window.location.href = "admin-dashboard.php";
+        });
+        box.querySelector("[data-admin-session-logout]").addEventListener("click", () => {
+            window.location.href = "admin_logout.php";
+        });
+    } catch (error) {
+        box.hidden = true;
+        box.style.display = "none";
+        form.hidden = false;
+        form.style.display = "";
+    }
+};
+
 const renderAllDynamicContent = () => {
     renderHomeNews();
     renderNewsPage();
@@ -502,11 +560,29 @@ const renderAllDynamicContent = () => {
     renderProcurementPage();
 };
 
+const loadDatabaseNews = async () => {
+    try {
+        const response = await fetch("public_news.php", {
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+        const data = await response.json();
+        if (data.ok && Array.isArray(data.news)) {
+            databaseNews = data.news;
+            renderAllDynamicContent();
+        }
+    } catch (error) {
+        databaseNews = null;
+    }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     renderAllDynamicContent();
+    loadDatabaseNews();
     initAdminLogin();
     initAdminRegistration();
     initAdminPhpMessages();
+    initAdminSessionStatus();
 
     document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => window.setTimeout(renderAllDynamicContent, 0));

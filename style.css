@@ -508,6 +508,10 @@
             gap: 12px;
         }
 
+        .admin-login-panel .admin-login-form[hidden] {
+            display: none !important;
+        }
+
         .admin-login-form label {
             display: grid;
             gap: 6px;
@@ -562,6 +566,58 @@
             color: var(--red);
             font-size: 13px;
             font-weight: 700;
+        }
+
+        .admin-session-box {
+            display: grid;
+            gap: 8px;
+            padding: 14px;
+            border: 1px solid #dce8dd;
+            background: #f4fbf5;
+        }
+
+        .admin-session-box[hidden] {
+            display: none !important;
+        }
+
+        .admin-session-box strong {
+            color: var(--red);
+            font-size: 17px;
+        }
+
+        .admin-session-box p,
+        .admin-session-box small {
+            margin: 0;
+            color: #30323a;
+        }
+
+        .admin-session-box small {
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .admin-session-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .admin-session-actions button,
+        .admin-session-actions a {
+            padding: 10px 12px;
+            border: 0;
+            background: var(--deep-purple);
+            color: #fff;
+            text-align: center;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .admin-session-actions button.secondary,
+        .admin-session-actions a.secondary {
+            background: #3a3a45;
         }
 
         .admin-shell {
@@ -831,6 +887,35 @@
         .admin-history-item p {
             margin: 0;
             color: #333640;
+        }
+
+        .admin-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 4px 0;
+        }
+
+        .admin-pagination button {
+            padding: 9px 14px;
+            border: 0;
+            background: var(--deep-purple);
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .admin-pagination button:disabled {
+            background: #d9dce5;
+            color: #7b7f8c;
+            cursor: not-allowed;
+        }
+
+        .admin-pagination span {
+            color: var(--muted);
+            font-weight: 700;
         }
 
         .admin-member-item small,

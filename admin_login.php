@@ -38,6 +38,7 @@ try {
         'full_name' => $user['full_name'],
         'role' => $user['role'],
     ];
+    $_SESSION['admin_last_activity'] = time();
 
     db()->prepare('UPDATE admin_users SET last_login_at = NOW() WHERE id = :id')
         ->execute(['id' => (int)$user['id']]);
@@ -50,4 +51,3 @@ try {
     header('Location: index.html?login=db_error');
     exit;
 }
-
