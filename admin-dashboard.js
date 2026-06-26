@@ -1,4 +1,8 @@
 const requireAdmin = () => {
+    if (window.location.pathname.endsWith("admin-dashboard.php")) {
+        return;
+    }
+
     if (sessionStorage.getItem(ADMIN_SESSION_KEY) !== "true") {
         window.location.href = "index.html";
     }
@@ -328,5 +332,5 @@ document.querySelector("[data-clear-audit-log]").addEventListener("click", () =>
 document.querySelector("[data-admin-logout]").addEventListener("click", () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     sessionStorage.removeItem(ADMIN_SESSION_USER_KEY);
-    window.location.href = "index.html";
+    window.location.href = "admin_logout.php";
 });

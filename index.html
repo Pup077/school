@@ -162,14 +162,14 @@
 
             <section class="panel admin-login-panel">
                 <h3>Admin Login</h3>
-                <form class="admin-login-form" data-admin-login-form>
+                <form class="admin-login-form" action="admin_login.php" method="post">
                     <label>
                         <span>ชื่อผู้ใช้</span>
-                        <input type="text" name="username" autocomplete="username" placeholder="admin" required>
+                        <input type="text" name="username" autocomplete="username" placeholder="username" required>
                     </label>
                     <label>
                         <span>รหัสผ่าน</span>
-                        <input type="password" name="password" autocomplete="current-password" placeholder="admin123" required>
+                        <input type="password" name="password" autocomplete="current-password" placeholder="password" required>
                     </label>
                     <button type="submit">เข้าสู่ระบบ</button>
                     <a class="admin-register-link" href="admin-register.html">ลงทะเบียน Admin</a>

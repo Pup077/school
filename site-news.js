@@ -462,6 +462,39 @@ const initAdminRegistration = () => {
     });
 };
 
+const initAdminPhpMessages = () => {
+    const params = new URLSearchParams(window.location.search);
+    const loginMessage = document.querySelector("[data-admin-login-message]");
+    const registerMessage = document.querySelector("[data-admin-register-message]");
+
+    const loginMessages = {
+        required: "กรุณาเข้าสู่ระบบก่อนเข้า Dashboard",
+        empty: "กรุณากรอกชื่อผู้ใช้และรหัสผ่าน",
+        failed: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
+        db_error: "เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบ MySQL",
+    };
+
+    const registerMessages = {
+        success: "ลงทะเบียน admin ลงฐานข้อมูลเรียบร้อยแล้ว",
+        empty: "กรุณากรอกข้อมูลให้ครบถ้วน",
+        short_password: "รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร",
+        password_mismatch: "รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน",
+        duplicate: "ชื่อผู้ใช้นี้ถูกใช้งานแล้ว",
+        db_error: "เชื่อมต่อฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบ MySQL",
+    };
+
+    if (loginMessage) {
+        const key = params.get("login");
+        if (key && loginMessages[key]) loginMessage.textContent = loginMessages[key];
+        if (params.get("logout") === "success") loginMessage.textContent = "ออกจากระบบเรียบร้อยแล้ว";
+    }
+
+    if (registerMessage) {
+        const key = params.get("register");
+        if (key && registerMessages[key]) registerMessage.textContent = registerMessages[key];
+    }
+};
+
 const renderAllDynamicContent = () => {
     renderHomeNews();
     renderNewsPage();
@@ -473,6 +506,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAllDynamicContent();
     initAdminLogin();
     initAdminRegistration();
+    initAdminPhpMessages();
 
     document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => window.setTimeout(renderAllDynamicContent, 0));
