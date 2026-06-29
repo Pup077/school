@@ -34,6 +34,7 @@ try {
         'metaOne' => $row['meta_one'] ?? '',
         'metaTwo' => $row['meta_two'] ?? '',
         'status' => $row['status'],
+        'updatedAt' => $row['updated_at'],
     ], $stmt->fetchAll());
 
     send_public_news_json(['ok' => true, 'news' => $items]);

@@ -568,6 +568,13 @@
             font-weight: 700;
         }
 
+        .admin-help {
+            margin: -6px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
         .admin-session-box {
             display: grid;
             gap: 8px;
@@ -1820,6 +1827,22 @@
             line-height: 1.35;
         }
 
+        .news-feature h3 a,
+        .news-row h3 a,
+        .job-card h3 a,
+        .news-card h3 a,
+        .table-link {
+            color: inherit;
+        }
+
+        .news-feature h3 a:hover,
+        .news-row h3 a:hover,
+        .job-card h3 a:hover,
+        .news-card h3 a:hover,
+        .table-link:hover {
+            color: var(--red);
+        }
+
         .news-feature h3 {
             font-size: 26px;
         }
@@ -1853,6 +1876,14 @@
             margin-top: 12px;
             color: var(--muted);
             font-size: 14px;
+        }
+
+        .table-update {
+            display: block;
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.35;
         }
 
         .read-more {
@@ -2001,6 +2032,57 @@
 
         .table-status.done {
             background: #168251;
+        }
+
+        .detail-layout {
+            max-width: 920px;
+        }
+
+        .news-detail {
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: clamp(18px, 4vw, 34px);
+            box-shadow: 0 14px 32px rgb(0 0 0 / 6%);
+        }
+
+        .news-detail-image {
+            width: 100%;
+            max-height: 440px;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        .news-detail h2 {
+            margin: 12px 0 10px;
+            color: var(--deep-purple);
+            font-size: clamp(26px, 4vw, 38px);
+            line-height: 1.3;
+        }
+
+        .detail-summary {
+            margin: 20px 0;
+            padding: 16px 18px;
+            border-left: 5px solid var(--red);
+            background: #f8fbf8;
+            color: #30323a;
+            font-weight: 700;
+        }
+
+        .detail-content {
+            color: #20243a;
+            font-size: 17px;
+            line-height: 1.85;
+        }
+
+        .detail-meta-box {
+            display: grid;
+            gap: 8px;
+            margin-top: 18px;
+            padding: 14px 16px;
+            border-left: 4px solid var(--purple);
+            background: #fbf8ff;
+            color: #30323a;
+            font-weight: 700;
         }
 
         .contact-map {

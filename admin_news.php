@@ -9,6 +9,54 @@ $action = $_GET['action'] ?? ($method === 'GET' ? 'list' : 'save');
 $allowedTypes = ['public', 'job', 'procurement'];
 $allowedStatuses = ['draft', 'published', 'archived'];
 
+function uploaded_news_image_path(): ?string
+{
+    if (empty($_FILES['imageFile']) || !is_array($_FILES['imageFile'])) {
+        return null;
+    }
+
+    $file = $_FILES['imageFile'];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if (($file['error'] ?? UPLOAD_ERR_OK) !== UPLOAD_ERR_OK) {
+        send_json(['ok' => false, 'message' => 'อัปโหลดรูปภาพไม่สำเร็จ'], 422);
+    }
+
+    if (($file['size'] ?? 0) > 3 * 1024 * 1024) {
+        send_json(['ok' => false, 'message' => 'รูปภาพต้องมีขนาดไม่เกิน 3MB'], 422);
+    }
+
+    $tmpPath = (string)($file['tmp_name'] ?? '');
+    $mimeType = is_file($tmpPath) ? mime_content_type($tmpPath) : '';
+    $extensions = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+    ];
+
+    if (!isset($extensions[$mimeType])) {
+        send_json(['ok' => false, 'message' => 'รองรับเฉพาะไฟล์ jpg, png และ webp'], 422);
+    }
+
+    $uploadDir = __DIR__ . '/uploads/news';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0775, true);
+    }
+
+    $filename = date('YmdHis') . '-' . bin2hex(random_bytes(8)) . '.' . $extensions[$mimeType];
+    $targetPath = $uploadDir . '/' . $filename;
+
+    if (!move_uploaded_file($tmpPath, $targetPath)) {
+        if (!rename($tmpPath, $targetPath)) {
+            send_json(['ok' => false, 'message' => 'บันทึกไฟล์รูปภาพไม่สำเร็จ'], 500);
+        }
+    }
+
+    return 'uploads/news/' . $filename;
+}
+
 function map_news_row(array $row): array
 {
     return [
@@ -16,6 +64,7 @@ function map_news_row(array $row): array
         'type' => $row['news_type'],
         'title' => $row['title'],
         'summary' => $row['summary'],
+        'content' => $row['content'] ?? '',
         'category' => $row['category'] ?? '',
         'date' => $row['display_date'] ?: ($row['publish_date'] ?? ''),
         'author' => $row['author'] ?? '',
@@ -49,6 +98,8 @@ try {
         $title = text_value($data, 'title');
         $summary = text_value($data, 'summary');
         $displayDate = nullable_text($data, 'date');
+        $hasContent = array_key_exists('content', $data);
+        $uploadedImage = uploaded_news_image_path();
 
         if ($title === '' || $summary === '') {
             send_json(['ok' => false, 'message' => 'กรุณากรอกหัวข้อและรายละเอียดสั้น'], 422);
@@ -58,11 +109,12 @@ try {
             'news_type' => $type,
             'title' => $title,
             'summary' => $summary,
+            'content' => $hasContent ? nullable_text($data, 'content') : null,
             'category' => nullable_text($data, 'category'),
             'publish_date' => display_date_to_sql($displayDate),
             'display_date' => $displayDate,
             'author' => nullable_text($data, 'author'),
-            'image_url' => nullable_text($data, 'image'),
+            'image_url' => $uploadedImage ?: nullable_text($data, 'image'),
             'announcement_no' => nullable_text($data, 'announcementNo'),
             'display_status' => nullable_text($data, 'displayStatus'),
             'meta_one' => nullable_text($data, 'metaOne'),
@@ -78,11 +130,13 @@ try {
                  SET news_type = :news_type, title = :title, summary = :summary, category = :category,
                      publish_date = :publish_date, display_date = :display_date, author = :author,
                      image_url = :image_url, announcement_no = :announcement_no, display_status = :display_status,
-                     meta_one = :meta_one, meta_two = :meta_two, status = :status, updated_by = :updated_by,
+                     meta_one = :meta_one, meta_two = :meta_two,
+                     content = CASE WHEN :has_content = 1 THEN :content ELSE content END,
+                     status = :status, updated_by = :updated_by,
                      published_at = CASE WHEN :status_for_publish = "published" THEN COALESCE(published_at, :published_at) ELSE published_at END
                  WHERE id = :id'
             );
-            $stmt->execute([...$payload, 'status_for_publish' => $status, 'id' => (int)$id]);
+            $stmt->execute([...$payload, 'has_content' => $hasContent ? 1 : 0, 'status_for_publish' => $status, 'id' => (int)$id]);
             write_admin_log((int)$admin['id'], 'update_news', 'news_item', $id, $title, 'แก้ไขข่าว ' . $title);
 
             send_json(['ok' => true, 'message' => 'บันทึกข่าวเรียบร้อยแล้ว']);
@@ -92,10 +146,10 @@ try {
         $stmt = db()->prepare(
             'INSERT INTO news_items
                 (news_type, title, summary, category, publish_date, display_date, author, image_url,
-                 announcement_no, display_status, meta_one, meta_two, status, sort_order, created_by, updated_by, published_at)
+                 announcement_no, display_status, meta_one, meta_two, content, status, sort_order, created_by, updated_by, published_at)
              VALUES
                 (:news_type, :title, :summary, :category, :publish_date, :display_date, :author, :image_url,
-                 :announcement_no, :display_status, :meta_one, :meta_two, :status, :sort_order, :created_by, :updated_by, :published_at)'
+                 :announcement_no, :display_status, :meta_one, :meta_two, :content, :status, :sort_order, :created_by, :updated_by, :published_at)'
         );
         $stmt->execute([...$payload, 'sort_order' => $maxSort + 10, 'created_by' => (int)$admin['id']]);
 
@@ -128,4 +182,3 @@ try {
 } catch (Throwable $error) {
     send_json(['ok' => false, 'message' => 'Database error'], 500);
 }
-

@@ -36,10 +36,11 @@ const actionLabels = {
 };
 
 const apiRequest = async (url, options = {}) => {
+    const isFormData = options.body instanceof FormData;
     const response = await fetch(url, {
         headers: {
             "Accept": "application/json",
-            ...(options.body ? { "Content-Type": "application/json" } : {})
+            ...(options.body && !isFormData ? { "Content-Type": "application/json" } : {})
         },
         cache: "no-store",
         ...options
@@ -60,6 +61,7 @@ const emptyForm = () => {
     form.elements.status.value = "published";
     form.elements.displayStatus.value = "เผยแพร่";
     form.elements.image.value = defaultImage;
+    if (form.elements.imageFile) form.elements.imageFile.value = "";
 };
 
 const setStatus = (text, target = statusText) => {
@@ -189,6 +191,7 @@ const fillForm = (item) => {
     form.elements.type.value = item.type || "public";
     form.elements.title.value = item.title || "";
     form.elements.summary.value = item.summary || "";
+    form.elements.content.value = item.content || "";
     form.elements.category.value = item.category || "";
     form.elements.date.value = item.date || "";
     form.elements.author.value = item.author || "";
@@ -198,6 +201,7 @@ const fillForm = (item) => {
     form.elements.metaOne.value = item.metaOne || "";
     form.elements.metaTwo.value = item.metaTwo || "";
     form.elements.image.value = item.image || defaultImage;
+    if (form.elements.imageFile) form.elements.imageFile.value = "";
     form.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
@@ -241,29 +245,14 @@ form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
     const type = getFormValue(formData, "type") || "public";
-    const newsItem = {
-        id: getFormValue(formData, "id"),
-        type,
-        title: getFormValue(formData, "title"),
-        summary: getFormValue(formData, "summary"),
-        category: getFormValue(formData, "category") || "ข่าวประชาสัมพันธ์",
-        date: getFormValue(formData, "date"),
-        author: getFormValue(formData, "author"),
-        image: getFormValue(formData, "image") || defaultImage,
-        announcementNo: getFormValue(formData, "announcementNo"),
-        displayStatus: getFormValue(formData, "displayStatus"),
-        metaOne: getFormValue(formData, "metaOne"),
-        metaTwo: getFormValue(formData, "metaTwo"),
-        status: getFormValue(formData, "status") || "published"
-    };
-
-    if (type === "job" && !newsItem.displayStatus) newsItem.displayStatus = newsItem.category || "เปิดรับสมัคร";
-    if (type === "procurement" && !newsItem.displayStatus) newsItem.displayStatus = "เผยแพร่";
+    if (!getFormValue(formData, "image")) formData.set("image", defaultImage);
+    if (type === "job" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", getFormValue(formData, "category") || "เปิดรับสมัคร");
+    if (type === "procurement" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", "เผยแพร่");
 
     try {
         const data = await apiRequest("admin_news.php?action=save", {
             method: "POST",
-            body: JSON.stringify(newsItem)
+            body: formData
         });
         await loadNews();
         renderAdminList();

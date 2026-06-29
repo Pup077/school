@@ -277,6 +277,10 @@ const pillClass = (category = "") => {
 
 const metaText = (item) => [item.date, item.author].filter(Boolean).join(" | ");
 
+const updateText = (item) => item.updatedAt ? `อัปเดตล่าสุด ${formatDateTime(item.updatedAt)}` : "";
+
+const detailUrl = (item) => `news-detail.php?id=${encodeURIComponent(item.id)}`;
+
 const statusClass = (value = "") => {
     if (value.includes("ปิด") || value.includes("เสร็จ")) return "closed";
     return "open";
@@ -298,7 +302,7 @@ const renderHomeNews = () => {
         <article class="news-card">
             <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
             <div>
-                <h3>${escapeHtml(item.title)}</h3>
+                <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
                 <p>${escapeHtml(item.summary)}</p>
             </div>
         </article>
@@ -333,10 +337,10 @@ const renderNewsPage = () => {
         <img src="${escapeHtml(lead.image || defaultImage)}" alt="${escapeHtml(lead.title)}">
         <div>
             <span class="news-pill ${pillClass(lead.category)}">${escapeHtml(lead.category || "ข่าวเด่น")}</span>
-            <h3>${escapeHtml(lead.title)}</h3>
+            <h3><a href="${escapeHtml(detailUrl(lead))}">${escapeHtml(lead.title)}</a></h3>
             <p>${escapeHtml(lead.summary)}</p>
-            <div class="news-meta">${escapeHtml(metaText(lead))}</div>
-            <a class="read-more" href="#">อ่านต่อ</a>
+            <div class="news-meta">${escapeHtml([metaText(lead), updateText(lead)].filter(Boolean).join(" | "))}</div>
+            <a class="read-more" href="${escapeHtml(detailUrl(lead))}">อ่านต่อ</a>
         </div>
     `;
 
@@ -345,15 +349,15 @@ const renderNewsPage = () => {
             <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
             <div>
                 <span class="news-pill ${pillClass(item.category)}">${escapeHtml(item.category || "ข่าวประชาสัมพันธ์")}</span>
-                <h3>${escapeHtml(item.title)}</h3>
+                <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
                 <p>${escapeHtml(item.summary)}</p>
-                <div class="news-meta">${escapeHtml(metaText(item))}</div>
+                <div class="news-meta">${escapeHtml([metaText(item), updateText(item)].filter(Boolean).join(" | "))}</div>
             </div>
         </article>
     `).join("");
 
     if (latestBox) {
-        latestBox.innerHTML = `<h3>ข่าวล่าสุด</h3>${items.slice(0, 3).map((item) => `<p>${escapeHtml(item.title)} ${escapeHtml(item.summary)}</p>`).join("")}`;
+        latestBox.innerHTML = `<h3>ข่าวล่าสุด</h3>${items.slice(0, 3).map((item) => `<a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)} ${escapeHtml(item.summary)}</a>`).join("")}`;
     }
 };
 
@@ -372,13 +376,14 @@ const renderJobsPage = () => {
         return `
             <article class="job-card ${statusClass(displayStatus) === "closed" ? "muted" : ""}">
                 <div class="job-status ${statusClass(displayStatus)}">${escapeHtml(displayStatus)}</div>
-                <h3>${escapeHtml(item.title)}</h3>
+                <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
                 <p>${escapeHtml(item.summary)}</p>
                 <div class="job-meta">
                     <span>${escapeHtml(item.metaOne || `รับสมัคร: ${item.date}`)}</span>
                     <span>${escapeHtml(item.metaTwo || item.author || "รายละเอียดเพิ่มเติม")}</span>
+                    ${updateText(item) ? `<span>${escapeHtml(updateText(item))}</span>` : ""}
                 </div>
-                <a class="read-more" href="#">ดูรายละเอียด</a>
+                <a class="read-more" href="${escapeHtml(detailUrl(item))}">ดูรายละเอียด</a>
             </article>
         `;
     }).join("");
@@ -398,9 +403,9 @@ const renderProcurementPage = () => {
         const displayStatus = item.displayStatus || "เผยแพร่";
         return `
             <tr>
-                <td>${escapeHtml(item.date)}</td>
+                <td>${escapeHtml(item.date)}${updateText(item) ? `<small class="table-update">${escapeHtml(updateText(item))}</small>` : ""}</td>
                 <td>${escapeHtml(item.announcementNo || "-")}</td>
-                <td>${escapeHtml(item.title)}</td>
+                <td><a class="table-link" href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></td>
                 <td>${escapeHtml(item.category || "ประกาศ")}</td>
                 <td><span class="table-status ${statusClass(displayStatus) === "closed" ? "done" : "open"}">${escapeHtml(displayStatus)}</span></td>
             </tr>

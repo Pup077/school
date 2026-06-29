@@ -49,6 +49,10 @@
                         <span>รายละเอียดสั้น</span>
                         <textarea name="summary" rows="5" required></textarea>
                     </label>
+                    <label>
+                        <span>รายละเอียดเพิ่มเติม</span>
+                        <textarea name="content" rows="8" placeholder="ใส่เนื้อหาข่าวฉบับเต็มสำหรับหน้าอ่านรายละเอียด"></textarea>
+                    </label>
                     <div class="admin-form-row">
                         <label>
                             <span>หมวดหมู่</span>
@@ -96,6 +100,11 @@
                         <span>ลิงก์รูปภาพ (ใช้กับข่าวประชาสัมพันธ์)</span>
                         <input type="url" name="image" placeholder="https://...">
                     </label>
+                    <label>
+                        <span>อัปโหลดรูปภาพ (jpg, png, webp)</span>
+                        <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    </label>
+                    <p class="admin-help">ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้รูปที่อัปโหลดแทนลิงก์รูปภาพ</p>
                     <div class="admin-actions">
                         <button type="submit">บันทึกข่าว</button>
                         <button class="secondary" type="button" data-reset-news>ล้างฟอร์ม</button>
@@ -161,7 +170,7 @@
         </section>
     </main>
 
-    <script src="site-news.js"></script>
-    <script src="admin-dashboard.js"></script>
+    <script src="site-news.js?v=20260629"></script>
+    <script src="admin-dashboard.js?v=20260629"></script>
 </body>
 </html>
