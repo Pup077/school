@@ -22,7 +22,7 @@ const translations = {
             mainMenu: "เมนูหลัก",
             homeShort: "หน้าแรก",
             aboutShort: "เกี่ยวกับเรา",
-            activityNewsTitle: "ข่าวสารกิจกรรม",
+            activityNewsTitle: "ข่าวเด่นประจำวัน",
             achievementShort: "การดำเนินงาน",
             contactShort: "ติดต่อเรา",
             moreInfo: "สอบถามข้อมูลเพิ่มเติม",

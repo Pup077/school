@@ -41,6 +41,7 @@ CREATE TABLE news_items (
     meta_two VARCHAR(255) NULL,
     content LONGTEXT NULL,
     document_url VARCHAR(500) NULL,
+    document_name VARCHAR(255) NULL,
     status ENUM('draft', 'published', 'archived') NOT NULL DEFAULT 'draft',
     sort_order INT NOT NULL DEFAULT 0,
     created_by INT UNSIGNED NULL,
@@ -57,6 +58,19 @@ CREATE TABLE news_items (
     INDEX idx_news_type_status (news_type, status),
     INDEX idx_news_publish_date (publish_date),
     INDEX idx_news_sort_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE news_documents (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    news_item_id INT UNSIGNED NOT NULL,
+    document_url VARCHAR(500) NOT NULL,
+    document_name VARCHAR(255) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_news_document_item
+        FOREIGN KEY (news_item_id) REFERENCES news_items(id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    INDEX idx_news_document_item (news_item_id, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE admin_activity_logs (

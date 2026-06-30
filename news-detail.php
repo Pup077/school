@@ -2,6 +2,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/includes/db.php';
+require_once __DIR__ . '/includes/news_schema.php';
+
+ensure_news_document_schema();
 
 $id = max(0, (int)($_GET['id'] ?? 0));
 $stmt = db()->prepare(
@@ -20,6 +23,46 @@ if (!$item) {
 function h(?string $value): string
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function document_name_from_url(?string $url): ?string
+{
+    $url = trim((string)$url);
+    if ($url === '') {
+        return null;
+    }
+
+    $path = parse_url($url, PHP_URL_PATH);
+    $name = basename(str_replace('\\', '/', (string)($path ?: $url)));
+    return $name !== '' ? rawurldecode($name) : null;
+}
+
+function news_documents(int $newsId, array $item): array
+{
+    $stmt = db()->prepare(
+        'SELECT id, document_url, document_name
+         FROM news_documents
+         WHERE news_item_id = :news_id
+         ORDER BY sort_order ASC, id ASC'
+    );
+    $stmt->execute(['news_id' => $newsId]);
+
+    $documents = array_map(static fn(array $row): array => [
+        'id' => (string)$row['id'],
+        'url' => $row['document_url'] ?? '',
+        'name' => $row['document_name'] ?? document_name_from_url($row['document_url'] ?? null) ?? '',
+    ], $stmt->fetchAll());
+
+    if (!$documents && !empty($item['document_url'])) {
+        $documents[] = [
+            'id' => (string)$newsId,
+            'url' => $item['document_url'],
+            'name' => $item['document_name'] ?? document_name_from_url($item['document_url']) ?? '',
+            'legacy' => true,
+        ];
+    }
+
+    return $documents;
 }
 
 function type_label(?string $type): string
@@ -63,6 +106,7 @@ $meta = array_filter([
     $item['author'] ?? null,
     isset($item['updated_at']) ? 'อัปเดตล่าสุด ' . thai_datetime($item['updated_at']) : null,
 ]);
+$documents = $item ? news_documents((int)$item['id'], $item) : [];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -143,9 +187,8 @@ $meta = array_filter([
                     <h2><?= h($item['title']) ?></h2>
                     <div class="news-meta"><?= h(implode(' | ', $meta)) ?></div>
 
-                    <?php if (!empty($item['announcement_no']) || !empty($item['display_status']) || !empty($item['meta_one']) || !empty($item['meta_two'])): ?>
+                    <?php if (!empty($item['display_status']) || !empty($item['meta_one']) || !empty($item['meta_two'])): ?>
                         <div class="detail-meta-box">
-                            <?php if (!empty($item['announcement_no'])): ?><span>เลขที่ประกาศ: <?= h($item['announcement_no']) ?></span><?php endif; ?>
                             <?php if (!empty($item['display_status'])): ?><span>สถานะ: <?= h($item['display_status']) ?></span><?php endif; ?>
                             <?php if (!empty($item['meta_one'])): ?><span><?= h($item['meta_one']) ?></span><?php endif; ?>
                             <?php if (!empty($item['meta_two'])): ?><span><?= h($item['meta_two']) ?></span><?php endif; ?>
@@ -156,6 +199,16 @@ $meta = array_filter([
                     <div class="detail-content">
                         <?= nl2br(h($bodyText)) ?>
                     </div>
+
+                    <?php if ($documents): ?>
+                        <div class="detail-document-list">
+                            <?php foreach ($documents as $document): ?>
+                                <a class="read-more" href="download-document.php?<?= !empty($document['legacy']) ? 'id' : 'document' ?>=<?= h((string)$document['id']) ?>">
+                                    เปิดเอกสารแนบ<?= !empty($document['name']) ? ': ' . h($document['name']) : '' ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
 
                     <a class="read-more" href="<?= h(back_url($type)) ?>">กลับไปยัง<?= h(type_label($type)) ?></a>
                 </article>

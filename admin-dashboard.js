@@ -19,12 +19,48 @@ const historyList = document.querySelector("[data-admin-history-list]");
 let dbNews = [];
 let dbMembers = [];
 let currentAdminId = "";
+let currentAdminName = "";
+let currentAdminRole = "editor";
 let historyPage = 1;
+let newsPage = 1;
+let memberPage = 1;
+
+const NEWS_PER_PAGE = 7;
+const MEMBERS_PER_PAGE = 4;
 
 const typeLabels = {
     public: "ข่าวประชาสัมพันธ์",
     job: "ข่าวรับสมัครงาน",
     procurement: "ข่าวจัดซื้อจัดจ้าง"
+};
+
+const newsTypeConfig = {
+    public: {
+        showCategory: true,
+        categoryOptions: ["ข่าวเด่น", "ข่าวประชาสัมพันธ์"],
+        showDisplayStatus: false,
+        mediaMode: "image",
+        defaultCategory: "ข่าวเด่น",
+        defaultDisplayStatus: ""
+    },
+    job: {
+        showCategory: true,
+        categoryOptions: ["สมัครงาน", "สมัครเรียน"],
+        showDisplayStatus: true,
+        displayStatusOptions: ["กำลังรับสมัคร", "ปิดรับสมัคร"],
+        mediaMode: "document",
+        defaultCategory: "สมัครงาน",
+        defaultDisplayStatus: "กำลังรับสมัคร"
+    },
+    procurement: {
+        showCategory: false,
+        categoryOptions: [],
+        showDisplayStatus: true,
+        displayStatusOptions: ["อยู่ระหว่างจัดซื้อ", "จัดซื้อเสร็จสิ้น"],
+        mediaMode: "document",
+        defaultCategory: "",
+        defaultDisplayStatus: "อยู่ระหว่างจัดซื้อ"
+    }
 };
 
 const actionLabels = {
@@ -33,6 +69,47 @@ const actionLabels = {
     create_news: "เพิ่มข่าว",
     update_news: "แก้ไขข่าว",
     delete_news: "ลบข่าว"
+};
+
+const thaiMonthNames = [
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม"
+];
+
+const thaiMonthLookup = thaiMonthNames.reduce((map, month, index) => {
+    map[month] = index + 1;
+    return map;
+}, {
+    "ม.ค.": 1,
+    "ก.พ.": 2,
+    "มี.ค.": 3,
+    "เม.ย.": 4,
+    "พ.ค.": 5,
+    "มิ.ย.": 6,
+    "ก.ค.": 7,
+    "ส.ค.": 8,
+    "ก.ย.": 9,
+    "ต.ค.": 10,
+    "พ.ย.": 11,
+    "ธ.ค.": 12
+});
+
+const todayIsoDate = () => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
 };
 
 const apiRequest = async (url, options = {}) => {
@@ -56,12 +133,16 @@ const emptyForm = () => {
     form.reset();
     form.elements.id.value = "";
     form.elements.type.value = "public";
-    form.elements.category.value = "ข่าวเด่น";
-    form.elements.author.value = "งานประชาสัมพันธ์";
+    form.elements.author.value = currentAdminName;
     form.elements.status.value = "published";
-    form.elements.displayStatus.value = "เผยแพร่";
+    form.elements.announcementNo.value = "";
+    form.elements.date.value = todayIsoDate();
     form.elements.image.value = defaultImage;
     if (form.elements.imageFile) form.elements.imageFile.value = "";
+    if (form.elements.documentFile) form.elements.documentFile.value = "";
+    if (form.elements.document) form.elements.document.value = "";
+    if (form.elements.documentName) form.elements.documentName.value = "";
+    configureNewsTypeFields("public");
 };
 
 const setStatus = (text, target = statusText) => {
@@ -74,7 +155,7 @@ const setStatus = (text, target = statusText) => {
 
 const adminMetaText = (item) => {
     if (item.type === "procurement") {
-        return [item.date, item.announcementNo, item.displayStatus].filter(Boolean).join(" | ");
+        return [item.date, item.displayStatus].filter(Boolean).join(" | ");
     }
 
     if (item.type === "job") {
@@ -84,9 +165,143 @@ const adminMetaText = (item) => {
     return metaText(item);
 };
 
+const setSelectOptions = (select, options, selectedValue = "") => {
+    select.innerHTML = options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("");
+    if (options.includes(selectedValue)) {
+        select.value = selectedValue;
+        return;
+    }
+    select.value = options[0] || "";
+};
+
+const toggleFormField = (field, visible) => {
+    if (!field) return;
+    field.hidden = !visible;
+    field.querySelectorAll("input, select, textarea").forEach((element) => {
+        element.disabled = !visible;
+    });
+};
+
+const renderPager = (page, totalPages, dataName) => `
+    <div class="admin-pagination">
+        <button type="button" data-${dataName}-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>หน้าก่อน</button>
+        <span>หน้า ${escapeHtml(page)} / ${escapeHtml(totalPages)}</span>
+        <button type="button" data-${dataName}-page="${page + 1}" ${page >= totalPages ? "disabled" : ""}>หน้าถัดไป</button>
+    </div>
+`;
+
+const documentNameFromUrl = (url = "") => {
+    const text = String(url || "").trim();
+    if (!text) return "";
+
+    try {
+        const path = new URL(text, window.location.href).pathname;
+        return decodeURIComponent(path.split("/").filter(Boolean).pop() || "");
+    } catch (error) {
+        return decodeURIComponent(text.split(/[\\/]/).filter(Boolean).pop() || text);
+    }
+};
+
+const adminDocumentsForItem = (item) => {
+    if (Array.isArray(item.documents) && item.documents.length) {
+        return item.documents;
+    }
+
+    if (item.documentUrl) {
+        return [{
+            id: item.id,
+            url: item.documentUrl,
+            name: item.documentName || documentNameFromUrl(item.documentUrl)
+        }];
+    }
+
+    return [];
+};
+
+const configureNewsTypeFields = (type = "public", values = {}) => {
+    const config = newsTypeConfig[type] || newsTypeConfig.public;
+    const categoryField = form.querySelector("[data-category-field]");
+    const displayStatusField = form.querySelector("[data-display-status-field]");
+    const imageLinkField = form.querySelector("[data-image-link-field]");
+    const imageFileField = form.querySelector("[data-image-file-field]");
+    const documentLinkField = form.querySelector("[data-document-link-field]");
+    const documentFileField = form.querySelector("[data-document-file-field]");
+    const uploadHelp = form.querySelector("[data-upload-help]");
+    const isImageMode = config.mediaMode === "image";
+
+    toggleFormField(categoryField, config.showCategory);
+    toggleFormField(displayStatusField, config.showDisplayStatus);
+    toggleFormField(imageLinkField, isImageMode);
+    toggleFormField(imageFileField, isImageMode);
+    toggleFormField(documentLinkField, !isImageMode);
+    toggleFormField(documentFileField, !isImageMode);
+    if (uploadHelp) {
+        uploadHelp.textContent = isImageMode
+            ? "ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้รูปที่อัปโหลดแทนลิงก์รูปภาพ"
+            : "ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้เอกสารที่อัปโหลดแทนลิงก์เอกสาร";
+    }
+
+    if (config.showCategory) {
+        setSelectOptions(form.elements.category, config.categoryOptions, values.category || config.defaultCategory);
+    } else {
+        form.elements.category.disabled = true;
+        form.elements.category.innerHTML = "";
+    }
+
+    if (config.showDisplayStatus) {
+        setSelectOptions(form.elements.displayStatus, config.displayStatusOptions, values.displayStatus || config.defaultDisplayStatus);
+    } else {
+        form.elements.displayStatus.disabled = true;
+        form.elements.displayStatus.innerHTML = "";
+    }
+
+    form.elements.announcementNo.value = "";
+};
+
+const adminCategoryValue = (type = "public", category = "") => {
+    const config = newsTypeConfig[type] || newsTypeConfig.public;
+    if (!config.showCategory) return "";
+    return config.categoryOptions.includes(category) ? category : config.defaultCategory;
+};
+
+const adminDisplayStatusValue = (type = "public", displayStatus = "") => {
+    const config = newsTypeConfig[type] || newsTypeConfig.public;
+    if (!config.showDisplayStatus) return "";
+    return config.displayStatusOptions.includes(displayStatus) ? displayStatus : config.defaultDisplayStatus;
+};
+
+const isoDateToThaiDisplay = (isoDate = "") => {
+    const match = String(isoDate).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return "";
+
+    const year = Number(match[1]) + 543;
+    const monthIndex = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    return `${day} ${thaiMonthNames[monthIndex]} ${year}`;
+};
+
+const thaiDisplayToIsoDate = (displayDate = "") => {
+    const text = String(displayDate || "").trim();
+    const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) return text;
+    const isoDateTimeMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+    if (isoDateTimeMatch) return `${isoDateTimeMatch[1]}-${isoDateTimeMatch[2]}-${isoDateTimeMatch[3]}`;
+
+    const thaiMatch = text.match(/(\d{1,2})\s*(ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)\s*(\d{4})/);
+    if (!thaiMatch) return "";
+
+    const day = String(Number(thaiMatch[1])).padStart(2, "0");
+    const month = String(thaiMonthLookup[thaiMatch[2]] || 0).padStart(2, "0");
+    const yearNumber = Number(thaiMatch[3]);
+    const year = yearNumber > 2400 ? yearNumber - 543 : yearNumber;
+    return month !== "00" ? `${year}-${month}-${day}` : "";
+};
+
 const loadNews = async () => {
     const data = await apiRequest("admin_news.php?action=list");
     dbNews = data.news || [];
+    currentAdminName = data.currentAdmin?.fullName || data.currentAdmin?.username || currentAdminName;
+    if (form?.elements?.author) form.elements.author.value = currentAdminName;
 };
 
 const renderAdminList = () => {
@@ -95,27 +310,47 @@ const renderAdminList = () => {
         return;
     }
 
-    list.innerHTML = dbNews.map((item) => `
-        <article class="admin-news-item">
-            <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
-            <div>
-                <span>${escapeHtml(typeLabels[item.type] || typeLabels.public)} / ${escapeHtml(item.category || "-")} / ${item.status === "published" ? "เผยแพร่" : "ฉบับร่าง"}</span>
-                <h3>${escapeHtml(item.title)}</h3>
-                <p>${escapeHtml(item.summary)}</p>
-                <small>${escapeHtml(adminMetaText(item))}</small>
-                <div class="admin-item-actions">
-                    <button type="button" data-edit-news="${escapeHtml(item.id)}">แก้ไข</button>
-                    <button class="danger" type="button" data-delete-news="${escapeHtml(item.id)}">ลบ</button>
+    const totalPages = Math.max(1, Math.ceil(dbNews.length / NEWS_PER_PAGE));
+    newsPage = Math.min(Math.max(newsPage, 1), totalPages);
+    const pageItems = dbNews.slice((newsPage - 1) * NEWS_PER_PAGE, newsPage * NEWS_PER_PAGE);
+
+    list.innerHTML = pageItems.map((item) => {
+        const categoryText = item.category ? ` / ${escapeHtml(item.category)}` : "";
+        const documents = adminDocumentsForItem(item);
+        const documentLabel = documents.length
+            ? documents.map((document) => document.name || documentNameFromUrl(document.url)).filter(Boolean).slice(0, 3).join(", ")
+            : "PDF / Word";
+        const documentCount = documents.length > 1 ? ` (${documents.length} ไฟล์)` : "";
+        const mediaHtml = item.type === "public"
+            ? `<img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">`
+            : `<div class="admin-news-file"><strong>${escapeHtml(documents.length ? `เอกสารแนบ${documentCount}` : "ยังไม่มีเอกสาร")}</strong><span>${escapeHtml(documents.length ? documentLabel : "PDF / Word")}</span></div>`;
+        return `
+            <article class="admin-news-item">
+                ${mediaHtml}
+                <div>
+                    <span>${escapeHtml(typeLabels[item.type] || typeLabels.public)}${categoryText} / ${item.status === "published" ? "เผยแพร่" : "ฉบับร่าง"}</span>
+                    <h3>${escapeHtml(item.title)}</h3>
+                    <p>${escapeHtml(item.summary)}</p>
+                    <small>${escapeHtml(adminMetaText(item))}</small>
+                    <div class="admin-item-actions">
+                        <button type="button" data-edit-news="${escapeHtml(item.id)}">แก้ไข</button>
+                        <button class="danger" type="button" data-delete-news="${escapeHtml(item.id)}">ลบ</button>
+                    </div>
                 </div>
-            </div>
-        </article>
-    `).join("");
+            </article>
+        `;
+    }).join("") + (totalPages > 1 ? renderPager(newsPage, totalPages, "news") : "");
 };
 
 const loadAdminMembers = async () => {
     const data = await apiRequest("admin_members.php?action=list");
     dbMembers = data.members || [];
     currentAdminId = data.currentAdminId || "";
+    currentAdminRole = data.currentAdminRole || "editor";
+    if (memberForm?.elements?.role) {
+        const adminOption = Array.from(memberForm.elements.role.options).find((option) => option.value === "admin");
+        if (adminOption) adminOption.disabled = currentAdminRole !== "admin";
+    }
 };
 
 const renderAdminMembers = () => {
@@ -126,29 +361,34 @@ const renderAdminMembers = () => {
         return;
     }
 
-    memberList.innerHTML = dbMembers.map((user) => `
-        <article class="admin-member-item">
-            <div>
-                <span>${escapeHtml(user.role === "admin" ? "Admin" : "Editor")} / ${user.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}</span>
-                <h3>${escapeHtml(user.fullName)}</h3>
-                <p>ชื่อผู้ใช้: ${escapeHtml(user.username)}</p>
-                <small>สร้างเมื่อ ${escapeHtml(formatDateTime(user.createdAt))} | เข้าสู่ระบบล่าสุด ${escapeHtml(formatDateTime(user.lastLoginAt))}</small>
-            </div>
-            <div class="admin-item-actions">
-                <button type="button" data-edit-admin="${escapeHtml(user.id)}">แก้ไข</button>
-                <button type="button" data-toggle-admin="${escapeHtml(user.id)}" ${user.id === currentAdminId ? "disabled" : ""}>${user.status === "active" ? "ปิดใช้งาน" : "เปิดใช้งาน"}</button>
-                <button class="danger" type="button" data-delete-admin="${escapeHtml(user.id)}" ${user.id === currentAdminId ? "disabled" : ""}>ลบ</button>
-            </div>
-        </article>
-    `).join("");
+    const totalPages = Math.max(1, Math.ceil(dbMembers.length / MEMBERS_PER_PAGE));
+    memberPage = Math.min(Math.max(memberPage, 1), totalPages);
+    const pageItems = dbMembers.slice((memberPage - 1) * MEMBERS_PER_PAGE, memberPage * MEMBERS_PER_PAGE);
+
+    memberList.innerHTML = pageItems.map((user) => {
+        const protectedAdmin = currentAdminRole !== "admin" && user.role === "admin";
+        const selfAccount = user.id === currentAdminId;
+        const disabledTitle = protectedAdmin ? ' title="Editor ไม่สามารถจัดการบัญชี Admin ได้"' : "";
+        return `
+            <article class="admin-member-item">
+                <div>
+                    <span>${escapeHtml(user.role === "admin" ? "Admin" : "Editor")} / ${user.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}</span>
+                    <h3>${escapeHtml(user.fullName)}</h3>
+                    <p>ชื่อผู้ใช้: ${escapeHtml(user.username)}</p>
+                    <small>สร้างเมื่อ ${escapeHtml(formatDateTime(user.createdAt))} | เข้าสู่ระบบล่าสุด ${escapeHtml(formatDateTime(user.lastLoginAt))}</small>
+                </div>
+                <div class="admin-item-actions">
+                    <button type="button" data-edit-admin="${escapeHtml(user.id)}" ${protectedAdmin ? "disabled" : ""}${disabledTitle}>แก้ไข</button>
+                    <button type="button" data-toggle-admin="${escapeHtml(user.id)}" ${selfAccount || protectedAdmin ? "disabled" : ""}${disabledTitle}>${user.status === "active" ? "ปิดใช้งาน" : "เปิดใช้งาน"}</button>
+                    <button class="danger" type="button" data-delete-admin="${escapeHtml(user.id)}" ${selfAccount || protectedAdmin ? "disabled" : ""}${disabledTitle}>ลบ</button>
+                </div>
+            </article>
+        `;
+    }).join("") + (totalPages > 1 ? renderPager(memberPage, totalPages, "member") : "");
 };
 
 const renderHistoryPager = (page, totalPages) => `
-    <div class="admin-pagination">
-        <button type="button" data-history-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>หน้าก่อน</button>
-        <span>หน้า ${escapeHtml(page)} / ${escapeHtml(totalPages)}</span>
-        <button type="button" data-history-page="${page + 1}" ${page >= totalPages ? "disabled" : ""}>หน้าถัดไป</button>
-    </div>
+    ${renderPager(page, totalPages, "history")}
 `;
 
 const renderAuditLogs = async (page = historyPage) => {
@@ -189,19 +429,26 @@ const renderAuditLogs = async (page = historyPage) => {
 const fillForm = (item) => {
     form.elements.id.value = item.id;
     form.elements.type.value = item.type || "public";
+    configureNewsTypeFields(form.elements.type.value, {
+        category: adminCategoryValue(form.elements.type.value, item.category),
+        displayStatus: adminDisplayStatusValue(form.elements.type.value, item.displayStatus)
+    });
     form.elements.title.value = item.title || "";
     form.elements.summary.value = item.summary || "";
     form.elements.content.value = item.content || "";
-    form.elements.category.value = item.category || "";
-    form.elements.date.value = item.date || "";
-    form.elements.author.value = item.author || "";
+    form.elements.date.value = item.publishDate || thaiDisplayToIsoDate(item.date) || todayIsoDate();
+    form.elements.author.value = currentAdminName || item.author || "";
     form.elements.status.value = item.status || "published";
-    form.elements.announcementNo.value = item.announcementNo || "";
-    form.elements.displayStatus.value = item.displayStatus || "";
+    form.elements.announcementNo.value = "";
     form.elements.metaOne.value = item.metaOne || "";
     form.elements.metaTwo.value = item.metaTwo || "";
     form.elements.image.value = item.image || defaultImage;
+    const documents = adminDocumentsForItem(item);
+    const firstDocument = documents[0] || {};
     if (form.elements.imageFile) form.elements.imageFile.value = "";
+    if (form.elements.document) form.elements.document.value = firstDocument.url || "";
+    if (form.elements.documentName) form.elements.documentName.value = firstDocument.name || documentNameFromUrl(firstDocument.url);
+    if (form.elements.documentFile) form.elements.documentFile.value = "";
     form.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
@@ -210,11 +457,14 @@ const emptyMemberForm = () => {
     memberForm.reset();
     memberForm.elements.id.value = "";
     memberForm.elements.role.value = "editor";
+    const adminOption = Array.from(memberForm.elements.role.options).find((option) => option.value === "admin");
+    if (adminOption) adminOption.disabled = currentAdminRole !== "admin";
     memberForm.elements.password.required = true;
 };
 
 const fillMemberForm = (user) => {
     if (!memberForm) return;
+    if (currentAdminRole !== "admin" && user.role === "admin") return;
     memberForm.elements.id.value = user.id;
     memberForm.elements.fullName.value = user.fullName || "";
     memberForm.elements.username.value = user.username || "";
@@ -233,21 +483,52 @@ const loadDashboard = async () => {
     emptyMemberForm();
 
     try {
-        await Promise.all([loadNews(), loadAdminMembers(), renderAuditLogs(1)]);
+        await loadNews();
         renderAdminList();
+    } catch (error) {
+        if (list) list.innerHTML = `<p class="news-empty">โหลดข่าวจากฐานข้อมูลไม่สำเร็จ: ${escapeHtml(error.message || "Database error")}</p>`;
+        setStatus(error.message || "โหลดข่าวจากฐานข้อมูลไม่สำเร็จ");
+    }
+
+    try {
+        await loadAdminMembers();
         renderAdminMembers();
     } catch (error) {
-        setStatus(error.message || "โหลดข้อมูลจากฐานข้อมูลไม่สำเร็จ");
+        if (memberList) memberList.innerHTML = `<p class="news-empty">โหลดสมาชิก Admin ไม่สำเร็จ: ${escapeHtml(error.message || "Database error")}</p>`;
+        setStatus(error.message || "โหลดสมาชิก Admin ไม่สำเร็จ", memberStatusText);
     }
+
+    await renderAuditLogs(1);
 };
 
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
     const type = getFormValue(formData, "type") || "public";
-    if (!getFormValue(formData, "image")) formData.set("image", defaultImage);
-    if (type === "job" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", getFormValue(formData, "category") || "เปิดรับสมัคร");
-    if (type === "procurement" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", "เผยแพร่");
+    const selectedDate = getFormValue(formData, "date");
+    if (selectedDate) {
+        formData.set("publishDate", selectedDate);
+        formData.set("date", isoDateToThaiDisplay(selectedDate));
+    }
+    if (type === "public" && !getFormValue(formData, "image")) formData.set("image", defaultImage);
+    if (type !== "public") {
+        formData.set("image", "");
+    }
+    formData.set("author", currentAdminName);
+    formData.set("announcementNo", "");
+    if (type === "public") {
+        formData.set("displayStatus", "");
+        formData.set("document", "");
+        formData.set("documentName", "");
+    }
+    if (type !== "public" && !getFormValue(formData, "documentName")) {
+        formData.set("documentName", documentNameFromUrl(getFormValue(formData, "document")));
+    }
+    if (type === "procurement") {
+        formData.set("category", "");
+    }
+    if (type === "job" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", "กำลังรับสมัคร");
+    if (type === "procurement" && !getFormValue(formData, "displayStatus")) formData.set("displayStatus", "อยู่ระหว่างจัดซื้อ");
 
     try {
         const data = await apiRequest("admin_news.php?action=save", {
@@ -304,6 +585,10 @@ if (memberForm) {
             fullName: getFormValue(formData, "fullName"),
             role: getFormValue(formData, "role") || "editor"
         };
+        if (currentAdminRole !== "admin" && userData.role === "admin") {
+            setStatus("สิทธิ์ Editor ไม่สามารถกำหนดบัญชีระดับ Admin ได้", memberStatusText);
+            return;
+        }
 
         try {
             const data = await apiRequest("admin_members.php?action=save", {
@@ -375,8 +660,31 @@ if (historyList) {
     });
 }
 
+if (list) {
+    list.addEventListener("click", (event) => {
+        const page = Number(event.target.dataset.newsPage || 0);
+        if (page > 0) {
+            newsPage = page;
+            renderAdminList();
+        }
+    });
+}
+
+if (memberList) {
+    memberList.addEventListener("click", (event) => {
+        const page = Number(event.target.dataset.memberPage || 0);
+        if (page > 0) {
+            memberPage = page;
+            renderAdminMembers();
+        }
+    });
+}
+
 document.querySelector("[data-new-news]").addEventListener("click", emptyForm);
 document.querySelector("[data-reset-news]").addEventListener("click", emptyForm);
+form.elements.type.addEventListener("change", () => {
+    configureNewsTypeFields(form.elements.type.value);
+});
 document.querySelector("[data-reset-admin-member]").addEventListener("click", emptyMemberForm);
 document.querySelector("[data-clear-audit-log]").addEventListener("click", () => renderAuditLogs(historyPage));
 document.querySelector("[data-admin-logout]").addEventListener("click", () => {

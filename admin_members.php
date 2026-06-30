@@ -7,6 +7,22 @@ $admin = require_admin_json();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $action = $_GET['action'] ?? ($method === 'GET' ? 'list' : 'save');
 
+function is_super_admin(array $admin): bool
+{
+    return ($admin['role'] ?? '') === 'admin';
+}
+
+function reject_editor_admin_access(array $admin, ?array $target = null, string $message = 'สิทธิ์ Editor ไม่สามารถจัดการบัญชีระดับ Admin ได้'): void
+{
+    if (is_super_admin($admin)) {
+        return;
+    }
+
+    if ($target === null || ($target['role'] ?? '') === 'admin') {
+        send_json(['ok' => false, 'message' => $message], 403);
+    }
+}
+
 try {
     if ($action === 'list') {
         $stmt = db()->query(
@@ -27,6 +43,7 @@ try {
                 'lastLoginAt' => $row['last_login_at'],
             ], $stmt->fetchAll()),
             'currentAdminId' => (string)$admin['id'],
+            'currentAdminRole' => $admin['role'] ?? 'editor',
         ]);
     }
 
@@ -38,6 +55,10 @@ try {
         $fullName = text_value($data, 'fullName');
         $password = (string)($data['password'] ?? '');
         $role = in_array(($data['role'] ?? 'editor'), ['admin', 'editor'], true) ? (string)$data['role'] : 'editor';
+
+        if (!is_super_admin($admin) && $role === 'admin') {
+            send_json(['ok' => false, 'message' => 'สิทธิ์ Editor ไม่สามารถสร้างหรือกำหนดบัญชีระดับ Admin ได้'], 403);
+        }
 
         if ($username === '' || $fullName === '') {
             send_json(['ok' => false, 'message' => 'กรุณากรอกชื่อ-สกุลและชื่อผู้ใช้'], 422);
@@ -58,6 +79,14 @@ try {
         }
 
         if ($id !== '') {
+            $targetStmt = db()->prepare('SELECT role FROM admin_users WHERE id = :id LIMIT 1');
+            $targetStmt->execute(['id' => (int)$id]);
+            $target = $targetStmt->fetch();
+            if (!$target) {
+                send_json(['ok' => false, 'message' => 'ไม่พบสมาชิก'], 404);
+            }
+            reject_editor_admin_access($admin, $target);
+
             $params = [
                 'id' => (int)$id,
                 'username' => $username,
@@ -108,12 +137,13 @@ try {
             send_json(['ok' => false, 'message' => 'ไม่สามารถเปลี่ยนสถานะบัญชีที่ใช้งานอยู่'], 422);
         }
 
-        $stmt = db()->prepare('SELECT username, full_name, is_active FROM admin_users WHERE id = :id LIMIT 1');
+        $stmt = db()->prepare('SELECT username, full_name, role, is_active FROM admin_users WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => (int)$id]);
         $member = $stmt->fetch();
         if (!$member) {
             send_json(['ok' => false, 'message' => 'ไม่พบสมาชิก'], 404);
         }
+        reject_editor_admin_access($admin, $member);
 
         $nextStatus = (int)$member['is_active'] === 1 ? 0 : 1;
         db()->prepare('UPDATE admin_users SET is_active = :status, updated_by = :updated_by WHERE id = :id')
@@ -129,12 +159,13 @@ try {
             send_json(['ok' => false, 'message' => 'ไม่สามารถลบบัญชีที่ใช้งานอยู่'], 422);
         }
 
-        $stmt = db()->prepare('SELECT username, full_name FROM admin_users WHERE id = :id LIMIT 1');
+        $stmt = db()->prepare('SELECT username, full_name, role FROM admin_users WHERE id = :id LIMIT 1');
         $stmt->execute(['id' => (int)$id]);
         $member = $stmt->fetch();
         if (!$member) {
             send_json(['ok' => false, 'message' => 'ไม่พบสมาชิก'], 404);
         }
+        reject_editor_admin_access($admin, $member);
 
         db()->prepare('DELETE FROM admin_users WHERE id = :id')->execute(['id' => (int)$id]);
         write_admin_log((int)$admin['id'], 'delete_admin', 'admin_user', $id, $member['username'], 'ลบสมาชิก Admin ' . $member['full_name']);

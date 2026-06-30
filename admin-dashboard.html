@@ -54,19 +54,22 @@
                         <textarea name="content" rows="8" placeholder="ใส่เนื้อหาข่าวฉบับเต็มสำหรับหน้าอ่านรายละเอียด"></textarea>
                     </label>
                     <div class="admin-form-row">
-                        <label>
+                        <label data-category-field>
                             <span>หมวดหมู่</span>
-                            <input type="text" name="category" placeholder="ข่าวเด่น">
+                            <select name="category">
+                                <option value="ข่าวเด่น">ข่าวเด่น</option>
+                                <option value="ข่าวประชาสัมพันธ์">ข่าวประชาสัมพันธ์</option>
+                            </select>
                         </label>
                         <label>
                             <span>วันที่ / ช่วงเวลา</span>
-                            <input type="text" name="date" placeholder="12 พฤษภาคม 2569">
+                            <input type="date" name="date" required>
                         </label>
                     </div>
                     <div class="admin-form-row">
                         <label>
                             <span>ผู้เผยแพร่</span>
-                            <input type="text" name="author" placeholder="งานประชาสัมพันธ์">
+                            <input type="text" name="author" readonly>
                         </label>
                         <label>
                             <span>สถานะเผยแพร่</span>
@@ -77,13 +80,10 @@
                         </label>
                     </div>
                     <div class="admin-form-row">
-                        <label>
-                            <span>เลขที่ประกาศ</span>
-                            <input type="text" name="announcementNo" placeholder="พญ. 03/2569">
-                        </label>
-                        <label>
+                        <input type="hidden" name="announcementNo">
+                        <label data-display-status-field>
                             <span>สถานะหน้าเว็บ</span>
-                            <input type="text" name="displayStatus" placeholder="เปิดรับสมัคร / เผยแพร่">
+                            <select name="displayStatus"></select>
                         </label>
                     </div>
                     <div class="admin-form-row">
@@ -96,15 +96,24 @@
                             <input type="text" name="metaTwo" placeholder="คุณวุฒิ: ปริญญาตรีสาขาที่เกี่ยวข้อง">
                         </label>
                     </div>
-                    <label>
+                    <label data-image-link-field>
                         <span>ลิงก์หรือ path รูปภาพ (ใช้กับข่าวประชาสัมพันธ์)</span>
                         <input type="text" name="image" inputmode="url" placeholder="https://... หรือ uploads/news/example.jpg">
                     </label>
-                    <label>
+                    <label data-image-file-field>
                         <span>อัปโหลดรูปภาพ (jpg, png, webp)</span>
                         <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                     </label>
-                    <p class="admin-help">ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้รูปที่อัปโหลดแทนลิงก์รูปภาพ</p>
+                    <label data-document-link-field>
+                        <span>ลิงก์หรือ path เอกสาร (ใช้กับข่าวรับสมัครงาน/จัดซื้อจัดจ้าง)</span>
+                        <input type="text" name="document" inputmode="url" placeholder="uploads/documents/example.pdf">
+                    </label>
+                    <input type="hidden" name="documentName">
+                    <label data-document-file-field>
+                        <span>อัปโหลดเอกสาร (pdf, doc, docx) เลือกได้หลายไฟล์</span>
+                        <input type="file" name="documentFile[]" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple>
+                    </label>
+                    <p class="admin-help" data-upload-help>ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้รูปที่อัปโหลดแทนลิงก์รูปภาพ</p>
                     <div class="admin-actions">
                         <button type="submit">บันทึกข่าว</button>
                         <button class="secondary" type="button" data-reset-news>ล้างฟอร์ม</button>
@@ -170,7 +179,7 @@
         </section>
     </main>
 
-    <script src="site-news.js?v=20260629"></script>
-    <script src="admin-dashboard.js?v=20260629"></script>
+    <script src="site-news.js?v=20260630-2"></script>
+    <script src="admin-dashboard.js?v=20260630-2"></script>
 </body>
 </html>

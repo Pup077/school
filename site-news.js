@@ -248,6 +248,8 @@ const normalizeItem = (item) => ({
     announcementNo: "",
     displayStatus: "",
     documentUrl: "",
+    documentName: "",
+    documents: [],
     ...item
 });
 
@@ -280,6 +282,8 @@ const publishedNews = (type = "public") => getNews().filter((item) => item.type 
 
 const allPublishedNews = () => getNews().filter(isPublished);
 
+const applicationAndProcurementNews = () => allPublishedNews().filter((item) => ["job", "procurement"].includes(item.type));
+
 const pillClass = (category = "") => {
     if (category.includes("กิจกรรม")) return "purple";
     if (category.includes("อาชีพ")) return "green";
@@ -292,6 +296,29 @@ const updateText = (item) => item.updatedAt ? `อัปเดตล่าสุ
 
 const detailUrl = (item) => `news-detail.php?id=${encodeURIComponent(item.id)}`;
 
+const documentsForItem = (item) => {
+    if (Array.isArray(item.documents) && item.documents.length) {
+        return item.documents;
+    }
+
+    if (item.documentUrl) {
+        return [{
+            id: item.id,
+            url: item.documentUrl,
+            name: item.documentName || ""
+        }];
+    }
+
+    return [];
+};
+
+const downloadUrl = (item, document = null) => {
+    if (document?.id && document.id !== item.id) {
+        return `download-document.php?document=${encodeURIComponent(document.id)}`;
+    }
+    return `download-document.php?id=${encodeURIComponent(item.id)}`;
+};
+
 const splitDisplayDate = (dateText = "") => {
     const text = String(dateText || "").trim();
     const dayMatch = text.match(/\d{1,2}/);
@@ -303,36 +330,66 @@ const splitDisplayDate = (dateText = "") => {
     };
 };
 
+const splitCalendarDate = (item = {}) => {
+    const iso = String(item.publishDate || "").trim();
+    const isoMatch = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoMatch) {
+        const date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+        return {
+            day: String(date.getDate()),
+            month: date.toLocaleDateString("th-TH", { month: "short" })
+        };
+    }
+
+    return splitDisplayDate(item.date);
+};
+
+const eventTimestamp = (item = {}) => {
+    const value = String(item.publishDate || "").trim();
+    const timestamp = value ? new Date(`${value}T00:00:00`).getTime() : 0;
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
 const statusClass = (value = "") => {
     if (value.includes("ปิด") || value.includes("เสร็จ")) return "closed";
     return "open";
 };
 
+const publicNewsByCategory = (category) => publishedNews("public").filter((item) => item.category === category);
+
 const renderHomeNews = () => {
     const grid = document.querySelector("[data-home-news-grid]");
-    if (!grid) return;
+    const hero = document.querySelector(".hero-card");
+    if (!grid && !hero) return;
 
-    const items = publishedNews("public").slice(0, 4);
-    if (!items.length) {
-        grid.innerHTML = `<p class="news-empty">ยังไม่มีข่าวที่เผยแพร่</p>`;
+    const featuredItems = publicNewsByCategory("ข่าวเด่น").slice(0, 4);
+    const heroItems = publicNewsByCategory("ข่าวประชาสัมพันธ์").slice(0, 6);
+    const fallbackHeroItems = heroItems.length ? heroItems : publishedNews("public").slice(0, 6);
+
+    if (grid) {
+        if (!featuredItems.length) {
+            grid.innerHTML = `<p class="news-empty">ยังไม่มีข่าวเด่นที่เผยแพร่</p>`;
+        } else {
+            grid.innerHTML = featuredItems.map((item) => `
+                <article class="news-card">
+                    <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
+                    <div>
+                        <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
+                        <p>${escapeHtml(item.summary)}</p>
+                    </div>
+                </article>
+            `).join("");
+        }
+    }
+
+    if (!fallbackHeroItems.length) {
         const heroTitle = document.querySelector(".hero-card h2");
         if (heroTitle) heroTitle.textContent = "ยังไม่มีข่าวที่เผยแพร่";
         if (homeHeroTimer) window.clearInterval(homeHeroTimer);
         return;
     }
 
-    grid.innerHTML = items.map((item) => `
-        <article class="news-card">
-            <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
-            <div>
-                <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
-                <p>${escapeHtml(item.summary)}</p>
-            </div>
-        </article>
-    `).join("");
-
-    const lead = items[0];
-    const hero = document.querySelector(".hero-card");
+    const lead = fallbackHeroItems[0];
     if (hero && lead) {
         const setHeroItem = (item) => {
             const image = hero.querySelector("img");
@@ -353,14 +410,39 @@ const renderHomeNews = () => {
         };
 
         let heroIndex = 0;
+        const showHeroAt = (index) => {
+            heroIndex = (index + fallbackHeroItems.length) % fallbackHeroItems.length;
+            setHeroItem(fallbackHeroItems[heroIndex]);
+        };
         setHeroItem(lead);
 
         if (homeHeroTimer) window.clearInterval(homeHeroTimer);
-        if (items.length > 1) {
+        if (fallbackHeroItems.length > 1) {
             homeHeroTimer = window.setInterval(() => {
-                heroIndex = (heroIndex + 1) % items.length;
-                setHeroItem(items[heroIndex]);
+                showHeroAt(heroIndex + 1);
             }, 4500);
+        }
+
+        const prevButton = hero.querySelector("[data-hero-prev]");
+        const nextButton = hero.querySelector("[data-hero-next]");
+        [prevButton, nextButton].forEach((button) => {
+            if (!button) return;
+            button.hidden = fallbackHeroItems.length <= 1;
+            button.disabled = fallbackHeroItems.length <= 1;
+        });
+        if (prevButton) {
+            prevButton.onclick = (event) => {
+                event.stopPropagation();
+                if (homeHeroTimer) window.clearInterval(homeHeroTimer);
+                showHeroAt(heroIndex - 1);
+            };
+        }
+        if (nextButton) {
+            nextButton.onclick = (event) => {
+                event.stopPropagation();
+                if (homeHeroTimer) window.clearInterval(homeHeroTimer);
+                showHeroAt(heroIndex + 1);
+            };
         }
     }
 };
@@ -369,7 +451,7 @@ const renderUrgentNewsList = () => {
     const list = document.querySelector("[data-urgent-news-list]");
     if (!list) return;
 
-    const items = allPublishedNews().slice(0, 5);
+    const items = applicationAndProcurementNews().slice(0, 5);
     if (!items.length) {
         list.innerHTML = `<p class="news-empty">ยังไม่มีข่าวประกาศด่วน</p>`;
         return;
@@ -411,8 +493,9 @@ const renderDownloadSection = () => {
     const grid = document.querySelector("[data-download-grid]");
     if (!grid) return;
 
-    const documents = allPublishedNews().filter((item) => item.documentUrl).slice(0, 3);
-    const displayItems = documents.length ? documents : allPublishedNews().slice(0, 3);
+    const sourceItems = applicationAndProcurementNews();
+    const documents = sourceItems.filter((item) => documentsForItem(item).length).slice(0, 3);
+    const displayItems = documents.length ? documents : sourceItems.slice(0, 3);
 
     if (!displayItems.length) {
         grid.innerHTML = `<p class="news-empty">ยังไม่มีเอกสารดาวน์โหลด</p>`;
@@ -420,13 +503,15 @@ const renderDownloadSection = () => {
     }
 
     grid.innerHTML = displayItems.map((item) => {
-        const hasDocument = Boolean(item.documentUrl);
-        const href = hasDocument ? item.documentUrl : detailUrl(item);
+        const itemDocuments = documentsForItem(item);
+        const firstDocument = itemDocuments[0] || null;
+        const hasDocument = Boolean(firstDocument);
+        const href = hasDocument ? downloadUrl(item, firstDocument) : detailUrl(item);
         return `
             <article class="download-box">
                 <span class="download-type">${escapeHtml(newsTypeLabels[item.type] || "ข่าว")}</span>
                 <h3>${escapeHtml(item.title)}</h3>
-                <p>${escapeHtml(item.summary || item.date || "ดูรายละเอียดเพิ่มเติม")}</p>
+                <p>${escapeHtml(firstDocument?.name || item.summary || item.date || "ดูรายละเอียดเพิ่มเติม")}</p>
                 <a class="more" href="${escapeHtml(href)}">${hasDocument ? "ดาวน์โหลด" : "ดูรายละเอียด"}</a>
             </article>
         `;
@@ -437,14 +522,16 @@ const renderEventCalendar = () => {
     const grid = document.querySelector("[data-event-calendar]");
     if (!grid) return;
 
-    const items = publishedNews("public").slice(0, 4);
+    const items = [...publishedNews("public")]
+        .sort((a, b) => eventTimestamp(b) - eventTimestamp(a))
+        .slice(0, 4);
     if (!items.length) {
         grid.innerHTML = `<p class="news-empty">ยังไม่มีกิจกรรมที่เผยแพร่</p>`;
         return;
     }
 
     grid.innerHTML = items.map((item) => {
-        const dateParts = splitDisplayDate(item.date);
+        const dateParts = splitCalendarDate(item);
         return `
             <article class="calendar-card">
                 <a href="${escapeHtml(detailUrl(item))}">
@@ -539,18 +626,16 @@ const renderProcurementPage = () => {
 
     const items = publishedNews("procurement");
     if (!items.length) {
-        tableBody.innerHTML = `<tr><td colspan="5">ยังไม่มีประกาศจัดซื้อจัดจ้างที่เผยแพร่</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="3">ยังไม่มีประกาศจัดซื้อจัดจ้างที่เผยแพร่</td></tr>`;
         return;
     }
 
     tableBody.innerHTML = items.map((item) => {
-        const displayStatus = item.displayStatus || "เผยแพร่";
+        const displayStatus = item.displayStatus || "อยู่ระหว่างจัดซื้อ";
         return `
             <tr>
                 <td>${escapeHtml(item.date)}${updateText(item) ? `<small class="table-update">${escapeHtml(updateText(item))}</small>` : ""}</td>
-                <td>${escapeHtml(item.announcementNo || "-")}</td>
                 <td><a class="table-link" href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></td>
-                <td>${escapeHtml(item.category || "ประกาศ")}</td>
                 <td><span class="table-status ${statusClass(displayStatus) === "closed" ? "done" : "open"}">${escapeHtml(displayStatus)}</span></td>
             </tr>
         `;
@@ -616,6 +701,33 @@ const initAdminRegistration = () => {
     });
 };
 
+const showRegisterSuccessPopup = () => {
+    const popup = document.createElement("div");
+    popup.className = "admin-register-popup";
+    popup.setAttribute("role", "status");
+    popup.setAttribute("aria-live", "polite");
+
+    let remaining = 3;
+    popup.innerHTML = `
+        <div class="admin-register-popup-card">
+            <strong>ลงทะเบียนเสร็จแล้ว</strong>
+            <p>ระบบจะพากลับไปหน้าเข้าสู่ระบบใน <span data-register-countdown>${remaining}</span> วินาที</p>
+        </div>
+    `;
+    document.body.appendChild(popup);
+
+    const countdown = popup.querySelector("[data-register-countdown]");
+    const timer = window.setInterval(() => {
+        remaining -= 1;
+        if (countdown) countdown.textContent = String(Math.max(remaining, 0));
+
+        if (remaining <= 0) {
+            window.clearInterval(timer);
+            window.location.href = "index.html";
+        }
+    }, 1000);
+};
+
 const initAdminPhpMessages = () => {
     const params = new URLSearchParams(window.location.search);
     const loginMessage = document.querySelector("[data-admin-login-message]");
@@ -646,6 +758,7 @@ const initAdminPhpMessages = () => {
     if (registerMessage) {
         const key = params.get("register");
         if (key && registerMessages[key]) registerMessage.textContent = registerMessages[key];
+        if (key === "success") showRegisterSuccessPopup();
     }
 };
 
