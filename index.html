@@ -121,12 +121,57 @@
                 </article>
             </div>
 
-            <div class="mini-list">
+            <div class="mini-list-head">
+                <h3 data-i18n="urgentNewsTitle">ข่าวประกาศด่วน</h3>
+                <a class="more" href="news.html">ดูทั้งหมด</a>
+            </div>
+
+            <div class="mini-list" data-urgent-news-list>
                 <div class="mini-item"><a href="#" data-i18n="miniJob6">ข่าวการรับสมัครงานตำแหน่งที่ 6</a><span>14-06-2566</span></div>
                 <div class="mini-item"><a href="#" data-i18n="miniJob5">ข่าวการรับสมัครงานตำแหน่งที่ 5</a><span>14-06-2566</span></div>
                 <div class="mini-item"><a href="#" data-i18n="miniProc6">ตัวอย่างประกาศการจัดซื้อจัดจ้างตามรายการที่ 6</a><span>14-06-2566</span></div>
                 <div class="mini-item"><a href="#" data-i18n="miniProc5">ตัวอย่างประกาศการจัดซื้อจัดจ้างตามรายการที่ 5</a><span>14-06-2566</span></div>
             </div>
+
+            <section class="activity inline-home-section">
+                <div class="section-title">
+                    <h2 data-i18n="latestActivityTitle">ภาพกิจกรรมล่าสุด</h2>
+                    <a class="more" href="news.html" data-i18n="more">ดูเพิ่มเติม</a>
+                </div>
+                <div class="activity-grid" data-activity-gallery>
+                    <article class="activity-card">
+                        <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/49_172.webp" alt="กิจกรรม">
+                        <h3 data-i18n="municipalActivity6">ข่าวกิจกรรมเทศบาลที่ 6</h3>
+                    </article>
+                    <article class="activity-card">
+                        <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/48_172.webp" alt="กิจกรรม">
+                        <h3 data-i18n="municipalActivity5">ข่าวกิจกรรมเทศบาลที่ 5</h3>
+                    </article>
+                    <article class="activity-card">
+                        <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/47_172.webp" alt="กิจกรรม">
+                        <h3 data-i18n="municipalActivity4">ข่าวกิจกรรมเทศบาลที่ 4</h3>
+                    </article>
+                </div>
+            </section>
+
+            <section class="event-calendar inline-home-section">
+                <div class="section-title">
+                    <h2 data-i18n="calendarTitle">ปฏิทินกิจกรรม</h2>
+                    <a class="more" href="news.html" data-i18n="more">ดูเพิ่มเติม</a>
+                </div>
+                <div class="calendar-grid" data-event-calendar>
+                    <article class="calendar-card">
+                        <div class="calendar-date">
+                            <strong>14</strong>
+                            <span>มิ.ย.</span>
+                        </div>
+                        <div>
+                            <h3>กิจกรรมตัวอย่าง</h3>
+                            <p>ติดตามรายละเอียดกิจกรรมและข่าวประชาสัมพันธ์ของโรงเรียน</p>
+                        </div>
+                    </article>
+                </div>
+            </section>
         </section>
 
         <aside class="side">
@@ -148,15 +193,24 @@
                 </ul>
             </section>
 
-            <section class="panel">
-                <h3 data-i18n="serviceSystems">ระบบงานบริการ</h3>
-                <div class="system-grid">
-                    <a href="#">E-Office</a>
-                    <a href="#">E-Budget</a>
-                    <a href="#">DMIS</a>
-                    <a href="#">EKAS</a>
-                    <a href="#">PLMIS</a>
-                    <a href="#">ค้นหาวุฒิ</a>
+            <section class="panel visitor-stats-panel">
+                <h3 data-i18n="visitorStatsTitle">สถิติเข้าชม</h3>
+                <div class="visitor-stats" data-visitor-stats>
+                    <div class="visitor-stat-main">
+                        <span>ผู้เข้าชมทั้งหมด</span>
+                        <strong data-visitor-total>...</strong>
+                    </div>
+                    <div class="visitor-stat-grid">
+                        <div>
+                            <span>วันนี้</span>
+                            <strong data-visitor-today>...</strong>
+                        </div>
+                        <div>
+                            <span>ออนไลน์</span>
+                            <strong data-visitor-online>...</strong>
+                        </div>
+                    </div>
+                    <small data-visitor-updated>กำลังโหลดสถิติ...</small>
                 </div>
             </section>
 
@@ -180,44 +234,13 @@
         </aside>
     </main>
 
-    <section class="activity">
-        <div class="container">
-            <div class="section-title">
-                <h2 data-i18n="calendarTitle">ปฏิทินกิจกรรม</h2>
-                <a class="more" href="#" data-i18n="more">ดูเพิ่มเติม</a>
-            </div>
-            <div class="activity-grid">
-                <article class="activity-card">
-                    <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/49_172.webp" alt="กิจกรรม">
-                    <h3 data-i18n="municipalActivity6">ข่าวกิจกรรมเทศบาลที่ 6</h3>
-                </article>
-                <article class="activity-card">
-                    <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/48_172.webp" alt="กิจกรรม">
-                    <h3 data-i18n="municipalActivity5">ข่าวกิจกรรมเทศบาลที่ 5</h3>
-                </article>
-                <article class="activity-card">
-                    <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/47_172.webp" alt="กิจกรรม">
-                    <h3 data-i18n="municipalActivity4">ข่าวกิจกรรมเทศบาลที่ 4</h3>
-                </article>
-                <article class="activity-card">
-                    <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/46_172.webp" alt="กิจกรรม">
-                    <h3 data-i18n="municipalActivity3">ข่าวกิจกรรมเทศบาลที่ 3</h3>
-                </article>
-                <article class="activity-card">
-                    <img src="https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/45_172.webp" alt="กิจกรรม">
-                    <h3 data-i18n="municipalActivity2">ข่าวกิจกรรมเทศบาลที่ 2</h3>
-                </article>
-            </div>
-        </div>
-    </section>
-
     <section class="downloads">
         <div class="container">
             <div class="section-title">
-                <h2 data-i18n="downloadsTitle">เอกสารดาวน์โหลด</h2>
+                <h2 data-i18n="downloadsTitle">เอกสารดาวน์โหลดล่าสุด</h2>
                 <a class="more" href="#" data-i18n="more">ดูเพิ่มเติม</a>
             </div>
-            <div class="download-grid">
+            <div class="download-grid" data-download-grid>
                 <article class="download-box">
                     <h3 data-i18n="meetingReport">รายงานการประชุม</h3>
                     <p data-i18n="meetingReportText">รายงานการประชุม ครั้งที่ 1/2568</p>
@@ -237,6 +260,47 @@
         </div>
     </section>
 
+    <section class="service-links">
+        <div class="container">
+            <div class="section-title">
+                <h2 data-i18n="serviceLinksTitle">ลิงก์ระบบบริการ</h2>
+                <a class="more" href="#" data-i18n="more">ดูเพิ่มเติม</a>
+            </div>
+            <div class="service-link-grid">
+                <a class="service-link-card" href="#">
+                    <span>E</span>
+                    <strong>E-Office</strong>
+                    <small>งานสารบรรณออนไลน์</small>
+                </a>
+                <a class="service-link-card" href="#">
+                    <span>B</span>
+                    <strong>E-Budget</strong>
+                    <small>ระบบงบประมาณ</small>
+                </a>
+                <a class="service-link-card" href="#">
+                    <span>D</span>
+                    <strong>DMIS</strong>
+                    <small>ระบบสารสนเทศ</small>
+                </a>
+                <a class="service-link-card" href="#">
+                    <span>K</span>
+                    <strong>EKAS</strong>
+                    <small>ระบบงานการศึกษา</small>
+                </a>
+                <a class="service-link-card" href="#">
+                    <span>P</span>
+                    <strong>PLMIS</strong>
+                    <small>แผนงานและติดตามผล</small>
+                </a>
+                <a class="service-link-card" href="#">
+                    <span>ว</span>
+                    <strong>ค้นหาวุฒิ</strong>
+                    <small>ตรวจสอบข้อมูลวุฒิ</small>
+                </a>
+            </div>
+        </div>
+    </section>
+
     <footer class="footer">
         <div class="container">
             <div class="footer-top">
@@ -244,9 +308,13 @@
                     <img src="img/Colour.png" alt="ตราสัญลักษณ์">
                     <h3 data-i18n="schoolName">โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</h3>
                 </div>
-                <div class="qr">
+                <div class="social-contact">
                     <h3 data-i18n="moreInfo">สอบถามข้อมูลเพิ่มเติม</h3>
-                    <img src="https://www.mueangnakhonsidole.com/images/sampledata/qr-code.webp" alt="qr code">
+                    <div class="social-icons" aria-label="ช่องทางโซเชียลมีเดีย">
+                        <a class="social-icon facebook" href="#" aria-label="Facebook">f</a>
+                        <a class="social-icon line" href="#" aria-label="LINE">LINE</a>
+                        <a class="social-icon email" href="contact.html" aria-label="Contact">@</a>
+                    </div>
                 </div>
             </div>
 
@@ -286,9 +354,9 @@
         ลิขสิทธิ์ © 2569 โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช. สงวนลิขสิทธิ์.
     </div>
 
-    <div class="chat-buttons" aria-hidden="true">
-        <img src="https://www.mueangnakhonsidole.com/templates/bizplus-government1-v2/images/messenger.png" alt="">
-        <img src="https://www.mueangnakhonsidole.com/templates/bizplus-government1-v2/images/line.png" alt="">
+    <div class="scroll-buttons" aria-label="เลื่อนขึ้นด้านบน">
+        <button type="button" data-scroll-top onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="เลื่อนขึ้นด้านบน">↑</button>
+        <!-- <button type="button" data-scroll-top onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="กลับไปด้านบน">⌃</button> -->
     </div>
     <script src="language.js"></script>
     <script src="site-news.js"></script>

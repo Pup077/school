@@ -29,6 +29,7 @@ try {
         'date' => $row['display_date'] ?: ($row['publish_date'] ?? ''),
         'author' => $row['author'] ?? '',
         'image' => $row['image_url'] ?? '',
+        'documentUrl' => $row['document_url'] ?? '',
         'announcementNo' => $row['announcement_no'] ?? '',
         'displayStatus' => $row['display_status'] ?? '',
         'metaOne' => $row['meta_one'] ?? '',

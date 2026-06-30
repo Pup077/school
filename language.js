@@ -60,6 +60,7 @@ const translations = {
             miniJob5: "ข่าวการรับสมัครงานตำแหน่งที่ 5",
             miniProc6: "ตัวอย่างประกาศการจัดซื้อจัดจ้างตามรายการที่ 6",
             miniProc5: "ตัวอย่างประกาศการจัดซื้อจัดจ้างตามรายการที่ 5",
+            urgentNewsTitle: "ข่าวประกาศด่วน",
             directorName: "นายอาคม กิจการ",
             directorTitle: "ผู้อำนวยการสถานศึกษาโรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช",
             relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
@@ -69,13 +70,16 @@ const translations = {
             visionMission: "วิสัยทัศน์ / พันธกิจ",
             officeContact: "ติดต่อสำนักงาน",
             serviceSystems: "ระบบงานบริการ",
+            serviceLinksTitle: "ลิงก์ระบบบริการ",
+            visitorStatsTitle: "สถิติเข้าชม",
             calendarTitle: "ปฏิทินกิจกรรม",
+            latestActivityTitle: "ภาพกิจกรรมล่าสุด",
             municipalActivity6: "ข่าวกิจกรรมเทศบาลที่ 6",
             municipalActivity5: "ข่าวกิจกรรมเทศบาลที่ 5",
             municipalActivity4: "ข่าวกิจกรรมเทศบาลที่ 4",
             municipalActivity3: "ข่าวกิจกรรมเทศบาลที่ 3",
             municipalActivity2: "ข่าวกิจกรรมเทศบาลที่ 2",
-            downloadsTitle: "เอกสารดาวน์โหลด",
+            downloadsTitle: "เอกสารดาวน์โหลดล่าสุด",
             meetingReport: "รายงานการประชุม",
             meetingReportText: "รายงานการประชุม ครั้งที่ 1/2568",
             forms: "แบบฟอร์ม",
@@ -375,6 +379,7 @@ translations.en.index = {
     miniJob5: "Job announcement item 5",
     miniProc6: "Procurement announcement sample item 6",
     miniProc5: "Procurement announcement sample item 5",
+    urgentNewsTitle: "Urgent Announcements",
     directorName: "Ms. Chutima Klamklai",
     directorTitle: "Director of Nakhon Si Thammarat Municipality Adult School",
     relatedInfo: "Related Information",
@@ -384,13 +389,16 @@ translations.en.index = {
     visionMission: "Vision / Mission",
     officeContact: "Office Contact",
     serviceSystems: "Service Systems",
+    serviceLinksTitle: "Service System Links",
+    visitorStatsTitle: "Visitor Statistics",
     calendarTitle: "Activity Calendar",
+    latestActivityTitle: "Latest Activity Photos",
     municipalActivity6: "Municipal activity news 6",
     municipalActivity5: "Municipal activity news 5",
     municipalActivity4: "Municipal activity news 4",
     municipalActivity3: "Municipal activity news 3",
     municipalActivity2: "Municipal activity news 2",
-    downloadsTitle: "Downloads",
+    downloadsTitle: "Latest Downloads",
     meetingReport: "Meeting Reports",
     meetingReportText: "Meeting report No. 1/2025",
     forms: "Forms",
@@ -644,7 +652,7 @@ const commonBindings = [
     [".nav > a:nth-of-type(2)", "common.navAchievement"],
     [".nav > a:nth-of-type(3)", "common.navContact"],
     [".footer-top h3:first-of-type", "common.schoolName"],
-    [".qr h3", "common.moreInfo"],
+    [".social-contact h3", "common.moreInfo"],
     [".footer-grid > div:nth-child(1) h3", "common.aboutAgency"],
     [".footer-grid > div:nth-child(1) p", "common.aboutAgencyText"],
     [".footer-grid > div:nth-child(2) h3", "common.mainMenu"],
@@ -1002,7 +1010,36 @@ const switchLanguage = (lang) => {
     localStorage.setItem("siteLanguage", current);
 };
 
+const NIGHT_MODE_KEY = "schoolNightMode";
+
+const applyNightMode = (enabled) => {
+    document.body.classList.toggle("night-mode", enabled);
+    document.querySelectorAll("[data-night-toggle]").forEach((button) => {
+        button.textContent = enabled ? "วัน" : "คืน";
+        button.setAttribute("aria-pressed", String(enabled));
+        button.setAttribute("aria-label", enabled ? "ปิดพื้นหลังกลางคืน" : "เปิดพื้นหลังกลางคืน");
+    });
+};
+
+const initNightModeToggle = () => {
+    const button = document.createElement("button");
+    button.className = "night-toggle";
+    button.type = "button";
+    button.dataset.nightToggle = "true";
+    document.body.appendChild(button);
+
+    const saved = localStorage.getItem(NIGHT_MODE_KEY) === "on";
+    applyNightMode(saved);
+
+    button.addEventListener("click", () => {
+        const enabled = !document.body.classList.contains("night-mode");
+        localStorage.setItem(NIGHT_MODE_KEY, enabled ? "on" : "off");
+        applyNightMode(enabled);
+    });
+};
+
 prepareTopStrip();
+initNightModeToggle();
 
 document.querySelectorAll("[data-lang-switch]").forEach((button) => {
     button.addEventListener("click", () => switchLanguage(button.dataset.langSwitch));

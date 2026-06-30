@@ -6,8 +6,14 @@ const ADMIN_AUDIT_STORAGE_KEY = "schoolAdminAuditLogs";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
 let databaseNews = null;
+let homeHeroTimer = null;
 
 const defaultImage = "https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/55_125.webp";
+const newsTypeLabels = {
+    public: "ข่าวประชาสัมพันธ์",
+    job: "ข่าวรับสมัครงาน",
+    procurement: "จัดซื้อจัดจ้าง"
+};
 
 const defaultAdminUsers = [
     {
@@ -241,6 +247,7 @@ const normalizeItem = (item) => ({
     metaTwo: "",
     announcementNo: "",
     displayStatus: "",
+    documentUrl: "",
     ...item
 });
 
@@ -267,7 +274,11 @@ const saveNews = (items) => {
     localStorage.setItem(NEWS_STORAGE_KEY, JSON.stringify(items.map(normalizeItem)));
 };
 
-const publishedNews = (type = "public") => getNews().filter((item) => item.type === type && item.status === "published");
+const isPublished = (item) => item.status === "published";
+
+const publishedNews = (type = "public") => getNews().filter((item) => item.type === type && isPublished(item));
+
+const allPublishedNews = () => getNews().filter(isPublished);
 
 const pillClass = (category = "") => {
     if (category.includes("กิจกรรม")) return "purple";
@@ -281,6 +292,17 @@ const updateText = (item) => item.updatedAt ? `อัปเดตล่าสุ
 
 const detailUrl = (item) => `news-detail.php?id=${encodeURIComponent(item.id)}`;
 
+const splitDisplayDate = (dateText = "") => {
+    const text = String(dateText || "").trim();
+    const dayMatch = text.match(/\d{1,2}/);
+    const monthMatch = text.match(/ม\.ค\.|ก\.พ\.|มี\.ค\.|เม\.ย\.|พ\.ค\.|มิ\.ย\.|ก\.ค\.|ส\.ค\.|ก\.ย\.|ต\.ค\.|พ\.ย\.|ธ\.ค\.|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม/i);
+
+    return {
+        day: dayMatch ? dayMatch[0] : "ข่าว",
+        month: monthMatch ? monthMatch[0] : "ล่าสุด"
+    };
+};
+
 const statusClass = (value = "") => {
     if (value.includes("ปิด") || value.includes("เสร็จ")) return "closed";
     return "open";
@@ -290,11 +312,12 @@ const renderHomeNews = () => {
     const grid = document.querySelector("[data-home-news-grid]");
     if (!grid) return;
 
-    const items = publishedNews("public").slice(0, 3);
+    const items = publishedNews("public").slice(0, 4);
     if (!items.length) {
         grid.innerHTML = `<p class="news-empty">ยังไม่มีข่าวที่เผยแพร่</p>`;
         const heroTitle = document.querySelector(".hero-card h2");
         if (heroTitle) heroTitle.textContent = "ยังไม่มีข่าวที่เผยแพร่";
+        if (homeHeroTimer) window.clearInterval(homeHeroTimer);
         return;
     }
 
@@ -311,11 +334,132 @@ const renderHomeNews = () => {
     const lead = items[0];
     const hero = document.querySelector(".hero-card");
     if (hero && lead) {
-        hero.querySelector("img").src = lead.image || defaultImage;
-        hero.querySelector("img").alt = lead.title;
-        hero.querySelector("h2").textContent = lead.title;
-        hero.querySelector(".badge").textContent = lead.category || "ข่าวประชาสัมพันธ์";
+        const setHeroItem = (item) => {
+            const image = hero.querySelector("img");
+            const title = hero.querySelector("h2");
+            const badge = hero.querySelector(".badge");
+
+            hero.classList.add("is-changing");
+            window.setTimeout(() => {
+                image.src = item.image || defaultImage;
+                image.alt = item.title;
+                title.innerHTML = `<a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a>`;
+                badge.textContent = item.category || "ข่าวประชาสัมพันธ์";
+                hero.onclick = () => {
+                    window.location.href = detailUrl(item);
+                };
+                hero.classList.remove("is-changing");
+            }, 180);
+        };
+
+        let heroIndex = 0;
+        setHeroItem(lead);
+
+        if (homeHeroTimer) window.clearInterval(homeHeroTimer);
+        if (items.length > 1) {
+            homeHeroTimer = window.setInterval(() => {
+                heroIndex = (heroIndex + 1) % items.length;
+                setHeroItem(items[heroIndex]);
+            }, 4500);
+        }
     }
+};
+
+const renderUrgentNewsList = () => {
+    const list = document.querySelector("[data-urgent-news-list]");
+    if (!list) return;
+
+    const items = allPublishedNews().slice(0, 5);
+    if (!items.length) {
+        list.innerHTML = `<p class="news-empty">ยังไม่มีข่าวประกาศด่วน</p>`;
+        return;
+    }
+
+    list.innerHTML = items.map((item) => `
+        <div class="mini-item">
+            <a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a>
+            <span>${escapeHtml(item.date || newsTypeLabels[item.type] || "ข่าว")}</span>
+        </div>
+    `).join("");
+};
+
+const renderActivityGallery = () => {
+    const gallery = document.querySelector("[data-activity-gallery]");
+    if (!gallery) return;
+
+    const items = publishedNews("public").filter((item) => item.image).slice(0, 5);
+    const fallbackItems = publishedNews("public").slice(0, 5);
+    const displayItems = items.length ? items : fallbackItems;
+
+    if (!displayItems.length) {
+        gallery.innerHTML = `<p class="news-empty">ยังไม่มีภาพกิจกรรมที่เผยแพร่</p>`;
+        return;
+    }
+
+    gallery.innerHTML = displayItems.map((item) => `
+        <article class="activity-card">
+            <a href="${escapeHtml(detailUrl(item))}">
+                <img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">
+                <span>${escapeHtml(item.category || newsTypeLabels[item.type] || "กิจกรรม")}</span>
+                <h3>${escapeHtml(item.title)}</h3>
+            </a>
+        </article>
+    `).join("");
+};
+
+const renderDownloadSection = () => {
+    const grid = document.querySelector("[data-download-grid]");
+    if (!grid) return;
+
+    const documents = allPublishedNews().filter((item) => item.documentUrl).slice(0, 3);
+    const displayItems = documents.length ? documents : allPublishedNews().slice(0, 3);
+
+    if (!displayItems.length) {
+        grid.innerHTML = `<p class="news-empty">ยังไม่มีเอกสารดาวน์โหลด</p>`;
+        return;
+    }
+
+    grid.innerHTML = displayItems.map((item) => {
+        const hasDocument = Boolean(item.documentUrl);
+        const href = hasDocument ? item.documentUrl : detailUrl(item);
+        return `
+            <article class="download-box">
+                <span class="download-type">${escapeHtml(newsTypeLabels[item.type] || "ข่าว")}</span>
+                <h3>${escapeHtml(item.title)}</h3>
+                <p>${escapeHtml(item.summary || item.date || "ดูรายละเอียดเพิ่มเติม")}</p>
+                <a class="more" href="${escapeHtml(href)}">${hasDocument ? "ดาวน์โหลด" : "ดูรายละเอียด"}</a>
+            </article>
+        `;
+    }).join("");
+};
+
+const renderEventCalendar = () => {
+    const grid = document.querySelector("[data-event-calendar]");
+    if (!grid) return;
+
+    const items = publishedNews("public").slice(0, 4);
+    if (!items.length) {
+        grid.innerHTML = `<p class="news-empty">ยังไม่มีกิจกรรมที่เผยแพร่</p>`;
+        return;
+    }
+
+    grid.innerHTML = items.map((item) => {
+        const dateParts = splitDisplayDate(item.date);
+        return `
+            <article class="calendar-card">
+                <a href="${escapeHtml(detailUrl(item))}">
+                    <div class="calendar-date">
+                        <strong>${escapeHtml(dateParts.day)}</strong>
+                        <span>${escapeHtml(dateParts.month)}</span>
+                    </div>
+                    <div>
+                        <h3>${escapeHtml(item.title)}</h3>
+                        <p>${escapeHtml(item.summary || item.author || "ดูรายละเอียดกิจกรรม")}</p>
+                    </div>
+                </a>
+            </article>
+        `;
+    }).join("");
 };
 
 const renderNewsPage = () => {
@@ -510,6 +654,49 @@ const formatRemainingMinutes = (seconds = 0) => {
     return `${minutes} นาที`;
 };
 
+const formatStatNumber = (value = 0) => Number(value || 0).toLocaleString("th-TH");
+
+const initVisitorStats = async () => {
+    const box = document.querySelector("[data-visitor-stats]");
+    if (!box) return;
+
+    const total = box.querySelector("[data-visitor-total]");
+    const today = box.querySelector("[data-visitor-today]");
+    const online = box.querySelector("[data-visitor-online]");
+    const updated = box.querySelector("[data-visitor-updated]");
+
+    try {
+        const page = document.body?.dataset?.page || "index";
+        const response = await fetch(`visitor_stats.php?page=${encodeURIComponent(page)}`, {
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+        const data = await response.json();
+
+        if (!data.ok || !data.stats) {
+            throw new Error("Visitor stats unavailable");
+        }
+
+        if (total) total.textContent = formatStatNumber(data.stats.total);
+        if (today) today.textContent = formatStatNumber(data.stats.today);
+        if (online) online.textContent = formatStatNumber(data.stats.online);
+        if (updated) updated.textContent = `อัปเดตล่าสุด ${formatDateTime(data.stats.updatedAt)}`;
+    } catch (error) {
+        if (total) total.textContent = "-";
+        if (today) today.textContent = "-";
+        if (online) online.textContent = "-";
+        if (updated) updated.textContent = "ยังไม่สามารถโหลดสถิติได้ กรุณาตรวจสอบฐานข้อมูล";
+    }
+};
+
+const initScrollTopButtons = () => {
+    document.querySelectorAll("[data-scroll-top]").forEach((button) => {
+        button.addEventListener("click", () => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+    });
+};
+
 const initAdminSessionStatus = async () => {
     const box = document.querySelector("[data-admin-session-box]");
     const form = document.querySelector(".admin-login-panel .admin-login-form");
@@ -560,6 +747,10 @@ const initAdminSessionStatus = async () => {
 
 const renderAllDynamicContent = () => {
     renderHomeNews();
+    renderUrgentNewsList();
+    renderActivityGallery();
+    renderDownloadSection();
+    renderEventCalendar();
     renderNewsPage();
     renderJobsPage();
     renderProcurementPage();
@@ -588,6 +779,8 @@ document.addEventListener("DOMContentLoaded", () => {
     initAdminRegistration();
     initAdminPhpMessages();
     initAdminSessionStatus();
+    initVisitorStats();
+    initScrollTopButtons();
 
     document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => window.setTimeout(renderAllDynamicContent, 0));
