@@ -948,11 +948,96 @@
             font-weight: 700;
         }
 
+        .admin-document-manager {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            border: 1px dashed #cfd4df;
+            background: #f7f8fb;
+        }
+
+        .admin-document-manager > span {
+            color: var(--deep-purple);
+            font-weight: 700;
+        }
+
+        .admin-current-documents {
+            display: grid;
+            gap: 8px;
+        }
+
+        .admin-document-row {
+            display: grid !important;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            gap: 8px !important;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+            background: #fff;
+            font-weight: 700;
+        }
+
+        .admin-document-row input {
+            width: auto;
+        }
+
+        .admin-document-row span {
+            overflow-wrap: anywhere;
+        }
+
+        .admin-empty-inline {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
         .detail-document-list {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 18px;
+        }
+
+        .download-archive {
+            display: grid;
+            gap: 20px;
+        }
+
+        .download-archive-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .download-archive-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid var(--line);
+            background: #fff;
+            box-shadow: 0 12px 28px rgb(0 0 0 / 5%);
+        }
+
+        .download-archive-item span {
+            display: inline-block;
+            margin-bottom: 4px;
+            color: var(--red);
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .download-archive-item h3 {
+            margin: 0 0 6px;
+            color: var(--deep-purple);
+            line-height: 1.35;
+        }
+
+        .download-archive-item p {
+            margin: 0;
+            color: var(--muted);
+            overflow-wrap: anywhere;
         }
 
         .admin-news-item span {
@@ -2975,6 +3060,7 @@
 
             .news-filter,
             .news-row,
+            .download-archive-item,
             .admin-form-row,
             .admin-news-item,
             .admin-member-item,

@@ -142,6 +142,7 @@ const emptyForm = () => {
     if (form.elements.documentFile) form.elements.documentFile.value = "";
     if (form.elements.document) form.elements.document.value = "";
     if (form.elements.documentName) form.elements.documentName.value = "";
+    renderCurrentDocumentControls([]);
     configureNewsTypeFields("public");
 };
 
@@ -218,6 +219,26 @@ const adminDocumentsForItem = (item) => {
     return [];
 };
 
+const renderCurrentDocumentControls = (documents = []) => {
+    const box = form.querySelector("[data-current-document-list]");
+    if (!box) return;
+
+    if (!documents.length) {
+        box.innerHTML = `<p class="admin-empty-inline">ยังไม่มีไฟล์แนบในข่าวนี้</p>`;
+        return;
+    }
+
+    box.innerHTML = documents.map((document) => {
+        const name = document.name || documentNameFromUrl(document.url) || "เอกสารแนบ";
+        return `
+            <label class="admin-document-row">
+                <input type="checkbox" name="keepDocumentIds[]" value="${escapeHtml(document.id)}" checked>
+                <span>${escapeHtml(name)}</span>
+            </label>
+        `;
+    }).join("");
+};
+
 const configureNewsTypeFields = (type = "public", values = {}) => {
     const config = newsTypeConfig[type] || newsTypeConfig.public;
     const categoryField = form.querySelector("[data-category-field]");
@@ -226,6 +247,7 @@ const configureNewsTypeFields = (type = "public", values = {}) => {
     const imageFileField = form.querySelector("[data-image-file-field]");
     const documentLinkField = form.querySelector("[data-document-link-field]");
     const documentFileField = form.querySelector("[data-document-file-field]");
+    const documentManager = form.querySelector("[data-document-manager]");
     const uploadHelp = form.querySelector("[data-upload-help]");
     const isImageMode = config.mediaMode === "image";
 
@@ -235,6 +257,7 @@ const configureNewsTypeFields = (type = "public", values = {}) => {
     toggleFormField(imageFileField, isImageMode);
     toggleFormField(documentLinkField, !isImageMode);
     toggleFormField(documentFileField, !isImageMode);
+    toggleFormField(documentManager, !isImageMode);
     if (uploadHelp) {
         uploadHelp.textContent = isImageMode
             ? "ถ้าอัปโหลดไฟล์ใหม่ ระบบจะใช้รูปที่อัปโหลดแทนลิงก์รูปภาพ"
@@ -449,6 +472,7 @@ const fillForm = (item) => {
     if (form.elements.document) form.elements.document.value = firstDocument.url || "";
     if (form.elements.documentName) form.elements.documentName.value = firstDocument.name || documentNameFromUrl(firstDocument.url);
     if (form.elements.documentFile) form.elements.documentFile.value = "";
+    renderCurrentDocumentControls(documents);
     form.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 

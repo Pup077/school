@@ -109,6 +109,12 @@
                         <input type="text" name="document" inputmode="url" placeholder="uploads/documents/example.pdf">
                     </label>
                     <input type="hidden" name="documentName">
+                    <input type="hidden" name="documentAction" value="manage">
+                    <div class="admin-document-manager" data-document-manager hidden>
+                        <span>ไฟล์แนบปัจจุบัน</span>
+                        <div class="admin-current-documents" data-current-document-list></div>
+                        <p class="admin-help">เอาเครื่องหมายถูกออกจากไฟล์ที่ต้องการลบ แล้วเลือกไฟล์ใหม่ด้านล่างเพื่อเพิ่มหรือแทนที่</p>
+                    </div>
                     <label data-document-file-field>
                         <span>อัปโหลดเอกสาร (pdf, doc, docx) เลือกได้หลายไฟล์</span>
                         <input type="file" name="documentFile[]" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple>
@@ -179,7 +185,7 @@
         </section>
     </main>
 
-    <script src="site-news.js?v=20260630-2"></script>
-    <script src="admin-dashboard.js?v=20260630-2"></script>
+    <script src="site-news.js?v=20260701-1"></script>
+    <script src="admin-dashboard.js?v=20260701-1"></script>
 </body>
 </html>

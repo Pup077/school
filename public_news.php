@@ -39,6 +39,7 @@ function document_from_legacy_fields(array $row): ?array
         'newsId' => (string)$row['id'],
         'url' => $url,
         'name' => $row['document_name'] ?? document_name_from_url($url) ?? '',
+        'legacy' => true,
     ];
 }
 

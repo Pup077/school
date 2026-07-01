@@ -152,6 +152,7 @@ $documents = $item ? news_documents((int)$item['id'], $item) : [];
                     <a href="news.html">ข่าวประชาสัมพันธ์</a>
                     <a href="jobs.html">ข่าวรับสมัครงาน</a>
                     <a href="procurement.html">จัดซื้อจัดจ้าง</a>
+                    <a href="downloads.html">เอกสารดาวน์โหลด</a>
                 </div>
             </div>
             <a href="acievement.html">การดำเนินงาน ACHIEVEMENT</a>

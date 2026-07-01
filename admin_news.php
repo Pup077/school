@@ -173,6 +173,7 @@ function document_from_legacy_fields(array $row): ?array
         'newsId' => (string)$row['id'],
         'url' => $url,
         'name' => $row['document_name'] ?? document_name_from_url($url) ?? '',
+        'legacy' => true,
     ];
 }
 
@@ -225,6 +226,29 @@ function replace_news_documents(int $newsId, array $documents): void
             'sort_order' => ($index + 1) * 10,
         ]);
     }
+}
+
+function sync_legacy_document_fields(int $newsId, array $documents): void
+{
+    $firstDocument = $documents[0] ?? null;
+    db()->prepare(
+        'UPDATE news_items
+         SET document_url = :document_url, document_name = :document_name
+         WHERE id = :id'
+    )->execute([
+        'document_url' => $firstDocument['url'] ?? null,
+        'document_name' => $firstDocument['name'] ?? null,
+        'id' => $newsId,
+    ]);
+}
+
+function document_id_values(mixed $value): array
+{
+    $values = is_array($value) ? $value : ($value === null ? [] : [$value]);
+    return array_values(array_unique(array_filter(array_map(
+        static fn($item): string => trim((string)$item),
+        $values
+    ))));
 }
 
 function map_news_row(array $row, array $documents = []): array
@@ -294,6 +318,14 @@ try {
         $uploadedImage = $type === 'public' ? uploaded_news_image_path() : null;
         $uploadedDocuments = $type !== 'public' ? uploaded_news_documents() : [];
         $firstUploadedDocument = $uploadedDocuments[0] ?? null;
+        $documentAction = text_value($data, 'documentAction') === 'manage';
+        $keepDocumentIds = document_id_values($data['keepDocumentIds'] ?? null);
+        $existingDocumentUrlBefore = null;
+        if ($id !== '') {
+            $existingStmt = db()->prepare('SELECT document_url FROM news_items WHERE id = :id LIMIT 1');
+            $existingStmt->execute(['id' => (int)$id]);
+            $existingDocumentUrlBefore = nullable_text($existingStmt->fetch() ?: [], 'document_url');
+        }
 
         if ($title === '' || $summary === '') {
             send_json(['ok' => false, 'message' => 'กรุณากรอกหัวข้อและรายละเอียดสั้น'], 422);
@@ -356,15 +388,43 @@ try {
             $stmt->execute([...$payload, 'has_content' => $hasContent ? 1 : 0, 'status_for_publish' => $status, 'id' => (int)$id]);
             if ($type === 'public') {
                 replace_news_documents((int)$id, []);
+                sync_legacy_document_fields((int)$id, []);
+            } elseif ($documentAction) {
+                $existingDocuments = fetch_news_documents([(int)$id]);
+                $currentDocuments = $existingDocuments[(string)(int)$id] ?? [];
+                $nextDocuments = array_values(array_filter(
+                    $currentDocuments,
+                    static fn(array $document): bool => in_array((string)$document['id'], $keepDocumentIds, true)
+                ));
+
+                if (!$currentDocuments && $documentUrl && in_array((string)(int)$id, $keepDocumentIds, true)) {
+                    $nextDocuments[] = [
+                        'url' => $documentUrl,
+                        'name' => $documentName ?? document_name_from_url($documentUrl),
+                    ];
+                }
+
+                $nextDocuments = [...$nextDocuments, ...$uploadedDocuments];
+                if (!$nextDocuments && $documentUrl && !$existingDocumentUrlBefore) {
+                    $nextDocuments[] = [
+                        'url' => $documentUrl,
+                        'name' => $documentName ?? document_name_from_url($documentUrl),
+                    ];
+                }
+                replace_news_documents((int)$id, $nextDocuments);
+                sync_legacy_document_fields((int)$id, $nextDocuments);
             } elseif ($uploadedDocuments) {
                 replace_news_documents((int)$id, $uploadedDocuments);
+                sync_legacy_document_fields((int)$id, $uploadedDocuments);
             } elseif ($documentUrl) {
                 $existingDocuments = fetch_news_documents([(int)$id]);
                 if (empty($existingDocuments[(string)(int)$id])) {
-                    replace_news_documents((int)$id, [[
+                    $nextDocuments = [[
                         'url' => $documentUrl,
                         'name' => $documentName ?? document_name_from_url($documentUrl),
-                    ]]);
+                    ]];
+                    replace_news_documents((int)$id, $nextDocuments);
+                    sync_legacy_document_fields((int)$id, $nextDocuments);
                 }
             }
             write_admin_log((int)$admin['id'], 'update_news', 'news_item', $id, $title, 'แก้ไขข่าว ' . $title);
@@ -393,6 +453,7 @@ try {
                 ]];
             }
             replace_news_documents((int)$newId, $documentsToSave);
+            sync_legacy_document_fields((int)$newId, $documentsToSave);
         }
         write_admin_log((int)$admin['id'], 'create_news', 'news_item', $newId, $title, 'เพิ่มข่าว ' . $title);
 

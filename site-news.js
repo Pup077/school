@@ -305,7 +305,8 @@ const documentsForItem = (item) => {
         return [{
             id: item.id,
             url: item.documentUrl,
-            name: item.documentName || ""
+            name: item.documentName || "",
+            legacy: true
         }];
     }
 
@@ -313,7 +314,7 @@ const documentsForItem = (item) => {
 };
 
 const downloadUrl = (item, document = null) => {
-    if (document?.id && document.id !== item.id) {
+    if (document?.id && !document.legacy) {
         return `download-document.php?document=${encodeURIComponent(document.id)}`;
     }
     return `download-document.php?id=${encodeURIComponent(item.id)}`;
@@ -516,6 +517,56 @@ const renderDownloadSection = () => {
             </article>
         `;
     }).join("");
+};
+
+const downloadArchiveItems = () => applicationAndProcurementNews().flatMap((item) => (
+    documentsForItem(item).map((document) => ({
+        item,
+        document,
+        name: document.name || item.documentName || "เอกสารแนบ",
+        type: item.type,
+        title: item.title,
+        date: item.date || item.publishDate || ""
+    }))
+));
+
+const renderDownloadsArchive = () => {
+    const list = document.querySelector("[data-download-archive-list]");
+    const filter = document.querySelector("[data-download-filter]");
+    if (!list) return;
+
+    const keyword = String(filter?.elements?.keyword?.value || "").trim().toLowerCase();
+    const type = String(filter?.elements?.type?.value || "all");
+    const items = downloadArchiveItems().filter(({ item, name }) => {
+        const matchType = type === "all" || item.type === type;
+        const text = `${item.title} ${item.summary} ${name} ${item.date}`.toLowerCase();
+        return matchType && (!keyword || text.includes(keyword));
+    });
+
+    if (!items.length) {
+        list.innerHTML = `<p class="news-empty">ไม่พบเอกสารดาวน์โหลด</p>`;
+        return;
+    }
+
+    list.innerHTML = items.map(({ item, document, name }) => `
+        <article class="download-archive-item">
+            <div>
+                <span>${escapeHtml(newsTypeLabels[item.type] || "ข่าว")} ${item.date ? `/ ${escapeHtml(item.date)}` : ""}</span>
+                <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
+                <p>${escapeHtml(name)}</p>
+            </div>
+            <a class="read-more" href="${escapeHtml(downloadUrl(item, document))}">ดาวน์โหลด</a>
+        </article>
+    `).join("");
+};
+
+const initDownloadsArchiveFilter = () => {
+    const filter = document.querySelector("[data-download-filter]");
+    if (!filter) return;
+
+    filter.addEventListener("input", renderDownloadsArchive);
+    filter.addEventListener("change", renderDownloadsArchive);
+    filter.addEventListener("submit", (event) => event.preventDefault());
 };
 
 const renderEventCalendar = () => {
@@ -863,6 +914,7 @@ const renderAllDynamicContent = () => {
     renderUrgentNewsList();
     renderActivityGallery();
     renderDownloadSection();
+    renderDownloadsArchive();
     renderEventCalendar();
     renderNewsPage();
     renderJobsPage();
@@ -894,6 +946,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initAdminSessionStatus();
     initVisitorStats();
     initScrollTopButtons();
+    initDownloadsArchiveFilter();
 
     document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => window.setTimeout(renderAllDynamicContent, 0));
