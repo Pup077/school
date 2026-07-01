@@ -7,6 +7,8 @@ const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
 let databaseNews = null;
 let homeHeroTimer = null;
+let scheduleCalendarDate = new Date();
+let scheduleCalendarUserSelected = false;
 
 const defaultImage = "https://www.mueangnakhonsidole.com/images/thumbnails/mod_minifrontpage/55_125.webp";
 const newsTypeLabels = {
@@ -351,6 +353,20 @@ const eventTimestamp = (item = {}) => {
     return Number.isNaN(timestamp) ? 0 : timestamp;
 };
 
+const scheduleDateValue = (item = {}) => {
+    const value = String(item.publishDate || "").trim();
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
+const dateKey = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
 const statusClass = (value = "") => {
     if (value.includes("ปิด") || value.includes("เสร็จ")) return "closed";
     return "open";
@@ -598,6 +614,116 @@ const renderEventCalendar = () => {
             </article>
         `;
     }).join("");
+};
+
+const scheduleItems = () => [...publishedNews("public")]
+    .filter((item) => scheduleDateValue(item))
+    .sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
+
+const renderScheduleCalendarPage = () => {
+    const calendar = document.querySelector("[data-schedule-calendar]");
+    const list = document.querySelector("[data-schedule-list]");
+    const title = document.querySelector("[data-schedule-month]");
+    if (!calendar && !list) return;
+
+    const items = scheduleItems();
+    if (!items.length) {
+        if (calendar) calendar.innerHTML = `<p class="news-empty">ยังไม่มีกำหนดการที่เผยแพร่</p>`;
+        if (list) list.innerHTML = `<p class="news-empty">ยังไม่มีกำหนดการที่เผยแพร่</p>`;
+        return;
+    }
+
+    if (!scheduleCalendarUserSelected) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const upcomingItem = items.find((item) => {
+            const date = scheduleDateValue(item);
+            return date && date.getTime() >= today.getTime();
+        }) || items[items.length - 1];
+        const date = scheduleDateValue(upcomingItem);
+        if (date) scheduleCalendarDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    const month = scheduleCalendarDate.getMonth();
+    const year = scheduleCalendarDate.getFullYear();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = firstDay.getDay();
+    const monthTitle = scheduleCalendarDate.toLocaleDateString("th-TH", { month: "long", year: "numeric" });
+    if (title) title.textContent = monthTitle;
+
+    const itemsByDate = items.reduce((map, item) => {
+        const date = scheduleDateValue(item);
+        if (!date) return map;
+        const key = dateKey(date);
+        if (!map[key]) map[key] = [];
+        map[key].push(item);
+        return map;
+    }, {});
+
+    if (calendar) {
+        const cells = [];
+        for (let i = 0; i < startOffset; i += 1) {
+            cells.push(`<div class="schedule-day is-empty"></div>`);
+        }
+        for (let day = 1; day <= daysInMonth; day += 1) {
+            const current = new Date(year, month, day);
+            const key = dateKey(current);
+            const dayItems = itemsByDate[key] || [];
+            cells.push(`
+                <div class="schedule-day ${dayItems.length ? "has-event" : ""}">
+                    <strong>${escapeHtml(day)}</strong>
+                    ${dayItems.slice(0, 2).map((item) => `<a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a>`).join("")}
+                    ${dayItems.length > 2 ? `<span>+${escapeHtml(dayItems.length - 2)} รายการ</span>` : ""}
+                </div>
+            `);
+        }
+        calendar.innerHTML = cells.join("");
+    }
+
+    if (list) {
+        const monthItems = items.filter((item) => {
+            const date = scheduleDateValue(item);
+            return date && date.getFullYear() === year && date.getMonth() === month;
+        });
+
+        list.innerHTML = monthItems.length ? monthItems.map((item) => {
+            const parts = splitCalendarDate(item);
+            return `
+                <article class="schedule-list-item">
+                    <div class="calendar-date">
+                        <strong>${escapeHtml(parts.day)}</strong>
+                        <span>${escapeHtml(parts.month)}</span>
+                    </div>
+                    <div>
+                        <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
+                        <p>${escapeHtml(item.summary || item.author || "ดูรายละเอียดกำหนดการ")}</p>
+                    </div>
+                </article>
+            `;
+        }).join("") : `<p class="news-empty">ยังไม่มีกำหนดการในเดือนนี้</p>`;
+    }
+};
+
+const initScheduleCalendarControls = () => {
+    const calendar = document.querySelector("[data-schedule-calendar]");
+    if (!calendar) return;
+
+    document.querySelector("[data-schedule-prev]")?.addEventListener("click", () => {
+        scheduleCalendarUserSelected = true;
+        scheduleCalendarDate = new Date(scheduleCalendarDate.getFullYear(), scheduleCalendarDate.getMonth() - 1, 1);
+        renderScheduleCalendarPage();
+    });
+    document.querySelector("[data-schedule-next]")?.addEventListener("click", () => {
+        scheduleCalendarUserSelected = true;
+        scheduleCalendarDate = new Date(scheduleCalendarDate.getFullYear(), scheduleCalendarDate.getMonth() + 1, 1);
+        renderScheduleCalendarPage();
+    });
+    document.querySelector("[data-schedule-today]")?.addEventListener("click", () => {
+        scheduleCalendarUserSelected = true;
+        scheduleCalendarDate = new Date();
+        renderScheduleCalendarPage();
+    });
 };
 
 const renderNewsPage = () => {
@@ -916,6 +1042,7 @@ const renderAllDynamicContent = () => {
     renderDownloadSection();
     renderDownloadsArchive();
     renderEventCalendar();
+    renderScheduleCalendarPage();
     renderNewsPage();
     renderJobsPage();
     renderProcurementPage();
@@ -947,6 +1074,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initVisitorStats();
     initScrollTopButtons();
     initDownloadsArchiveFilter();
+    initScheduleCalendarControls();
 
     document.querySelectorAll("[data-lang-switch]").forEach((button) => {
         button.addEventListener("click", () => window.setTimeout(renderAllDynamicContent, 0));

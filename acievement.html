@@ -6,7 +6,7 @@
     <title>โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="index">
+<body data-page="achievement">
     <div class="top-strip">
         <div class="container">
             <span data-i18n="schoolName">โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</span>
@@ -51,12 +51,54 @@
                     <a href="downloads.html">เอกสารดาวน์โหลด</a>
                 </div>
             </div>
-            <a href="#" data-i18n="navAchievement">การดำเนินงาน ACHIEVEMENT</a>
+            <a href="acievement.html" data-i18n="navAchievement">การดำเนินงาน ACHIEVEMENT</a>
             <a href="contact.html" data-i18n="navContact">ติดต่อเรา CONTACT US</a>
         </nav>
     </div>
 
-    <h1>รายงานการประชุม ครั้งที่ 1/2568</h1>
+    <section class="page-hero news-hero">
+        <div class="container">
+            <div class="breadcrumb">หน้าหลัก / ปฏิทินกำหนดการ</div>
+            <h2>ปฏิทินกำหนดการ</h2>
+            <p>ติดตามวันสำคัญ กิจกรรม ประกาศ และกำหนดการของโรงเรียนสำหรับประชาชนและนักศึกษา</p>
+        </div>
+    </section>
+
+    <main class="schedule-page">
+        <div class="container schedule-layout">
+            <section class="schedule-calendar-panel">
+                <div class="section-title">
+                    <h2 data-schedule-month>ปฏิทินกิจกรรม</h2>
+                    <div class="schedule-controls">
+                        <button type="button" data-schedule-prev aria-label="เดือนก่อนหน้า">‹</button>
+                        <button type="button" data-schedule-today>เดือนนี้</button>
+                        <button type="button" data-schedule-next aria-label="เดือนถัดไป">›</button>
+                    </div>
+                </div>
+                <div class="schedule-weekdays" aria-hidden="true">
+                    <span>อา.</span>
+                    <span>จ.</span>
+                    <span>อ.</span>
+                    <span>พ.</span>
+                    <span>พฤ.</span>
+                    <span>ศ.</span>
+                    <span>ส.</span>
+                </div>
+                <div class="schedule-calendar" data-schedule-calendar>
+                    <p class="news-empty">กำลังโหลดปฏิทิน...</p>
+                </div>
+            </section>
+
+            <aside class="schedule-list-panel">
+                <div class="section-title">
+                    <h2>กำหนดการในเดือนนี้</h2>
+                </div>
+                <div class="schedule-list" data-schedule-list>
+                    <p class="news-empty">กำลังโหลดกำหนดการ...</p>
+                </div>
+            </aside>
+        </div>
+    </main>
 
    
     <footer class="footer">
@@ -116,6 +158,7 @@
         <button type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="เลื่อนขึ้นด้านบน">↑</button>
         <button type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="กลับไปด้านบน">⌃</button>
     </div>
-    <script src="language.js"></script>
+    <script src="language.js?v=20260629"></script>
+    <script src="site-news.js?v=20260701-2"></script>
 </body>
 </html>
