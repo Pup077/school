@@ -137,7 +137,7 @@ const emptyForm = () => {
     form.elements.status.value = "published";
     form.elements.announcementNo.value = "";
     form.elements.date.value = todayIsoDate();
-    form.elements.image.value = defaultImage;
+    form.elements.image.value = "";
     if (form.elements.imageFile) form.elements.imageFile.value = "";
     if (form.elements.documentFile) form.elements.documentFile.value = "";
     if (form.elements.document) form.elements.document.value = "";
@@ -345,7 +345,9 @@ const renderAdminList = () => {
             : "PDF / Word";
         const documentCount = documents.length > 1 ? ` (${documents.length} ไฟล์)` : "";
         const mediaHtml = item.type === "public"
-            ? `<img src="${escapeHtml(item.image || defaultImage)}" alt="${escapeHtml(item.title)}">`
+            ? (item.image
+                ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">`
+                : `<div class="admin-news-file"><strong>ยังไม่มีรูปภาพ</strong><span>เพิ่มรูปได้จากปุ่มแก้ไข</span></div>`)
             : `<div class="admin-news-file"><strong>${escapeHtml(documents.length ? `เอกสารแนบ${documentCount}` : "ยังไม่มีเอกสาร")}</strong><span>${escapeHtml(documents.length ? documentLabel : "PDF / Word")}</span></div>`;
         return `
             <article class="admin-news-item">
@@ -465,7 +467,7 @@ const fillForm = (item) => {
     form.elements.announcementNo.value = "";
     form.elements.metaOne.value = item.metaOne || "";
     form.elements.metaTwo.value = item.metaTwo || "";
-    form.elements.image.value = item.image || defaultImage;
+    form.elements.image.value = item.image || "";
     const documents = adminDocumentsForItem(item);
     const firstDocument = documents[0] || {};
     if (form.elements.imageFile) form.elements.imageFile.value = "";
@@ -534,7 +536,6 @@ form.addEventListener("submit", async (event) => {
         formData.set("publishDate", selectedDate);
         formData.set("date", isoDateToThaiDisplay(selectedDate));
     }
-    if (type === "public" && !getFormValue(formData, "image")) formData.set("image", defaultImage);
     if (type !== "public") {
         formData.set("image", "");
     }
