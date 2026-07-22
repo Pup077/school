@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เอกสารดาวน์โหลด - โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</title>
+    <title>ตารางสอบ - โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</title>
     <link rel="icon" type="image/png" href="img/Colour.png">
     <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="downloads">
+<body>
     <div class="top-strip">
         <div class="container">
             <span>โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</span>
@@ -18,9 +18,7 @@
     <header class="header">
         <div class="container brand">
             <img class="brand-logo" src="img/Colour.png" alt="ตราสัญลักษณ์โรงเรียน">
-            <div>
-                <h1>โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</h1>
-            </div>
+            <div><h1>โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</h1></div>
         </div>
     </header>
 
@@ -62,56 +60,26 @@
         </nav>
     </div>
 
-    <section class="page-hero news-hero">
+    <section class="page-hero">
         <div class="container">
-            <div class="breadcrumb">หน้าหลัก / ข่าวสารกิจกรรม / เอกสารดาวน์โหลด</div>
-            <h2>เอกสารดาวน์โหลด</h2>
-            <p>รวมไฟล์แนบจากข่าวรับสมัครงานและประกาศจัดซื้อจัดจ้างเพื่อค้นหาและดาวน์โหลดได้สะดวก</p>
+            <div class="breadcrumb">หน้าหลัก / การจัดการเรียนการสอน / ตารางสอบ</div>
+            <h2>ตารางสอบ</h2>
         </div>
     </section>
 
-    <main class="news-page">
+    <main class="empty-content-page">
         <div class="container">
-            <section class="download-archive">
-                <div class="news-toolbar">
-                    <div>
-                        <span>DOWNLOAD CENTER</span>
-                        <h2>รายการเอกสารทั้งหมด</h2>
-                    </div>
-                    <form class="news-filter" data-download-filter>
-                        <input type="search" name="keyword" placeholder="ค้นหาชื่อข่าวหรือชื่อเอกสาร">
-                        <select name="type" aria-label="ประเภทเอกสาร">
-                            <option value="all">ทั้งหมด</option>
-                            <option value="job">ข่าวรับสมัครงาน</option>
-                            <option value="procurement">จัดซื้อจัดจ้าง</option>
-                        </select>
-                    </form>
-                </div>
-
-                <div class="download-archive-list" data-download-archive-list>
-                    <p class="news-empty">กำลังโหลดเอกสาร...</p>
-                </div>
+            <section class="empty-content-panel" aria-label="ตารางสอบ">
+                <h2>ตารางสอบ</h2>
+                <p>พื้นที่สำหรับเพิ่มข้อมูลภายหลัง</p>
             </section>
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-top">
-                <div>
-                    <img src="img/Colour.png" alt="ตราสัญลักษณ์">
-                    <h3>โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช</h3>
-                </div>
-                <ul>
-                    <li>ข่าวสารกิจกรรม</li>
-                    <li>เอกสารดาวน์โหลด</li>
-                    <li>ติดต่อเรา</li>
-                </ul>
-            </div>
-        </div>
-    </footer>
-
-    <script src="site-news.js?v=20260715-1"></script>
-    <script src="language.js?v=20260629"></script>
+    <div class="scroll-buttons" aria-label="เลื่อนขึ้นด้านบน">
+        <button type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="เลื่อนขึ้นด้านบน">↑</button>
+        <button type="button" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" aria-label="กลับไปด้านบน">⌃</button>
+    </div>
+    <script src="language.js"></script>
 </body>
 </html>

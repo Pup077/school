@@ -148,7 +148,7 @@
         .dropdown > button {
             display: flex;
             align-items: center;
-            padding: 0 18px;
+            padding: 0 13px;
             border: 0;
             background: transparent;
             color: #232323;
@@ -199,9 +199,34 @@
             color: var(--red);
         }
 
+        .student-services-menu {
+            min-width: 340px;
+        }
+
         .search-band {
             background: linear-gradient(90deg, var(--red) 0 23%, #fff 23% 100%);
             padding: 18px 0;
+        }
+
+        .empty-content-page {
+            min-height: 420px;
+            padding: 48px 0 72px;
+            background: #f7f7f7;
+        }
+
+        .empty-content-panel {
+            min-height: 280px;
+            padding: 32px;
+            border: 1px dashed #d7d7d7;
+            border-radius: 12px;
+            background: #fff;
+            color: #777;
+            text-align: center;
+        }
+
+        .empty-content-panel h2 {
+            margin: 0 0 8px;
+            color: #333;
         }
 
         .search-box {
