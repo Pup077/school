@@ -2,7 +2,7 @@ const translations = {
     th: {
         common: {
             schoolName: "โรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช",
-            slogan: "\"เรียนดี มีความสุข\"",
+            slogan: "เป็นผู้นำการสร้างโอกาสทางการศึกษาที่เท่าเทียม ด้วยนวัตกรรมการเรียนรู้เชิงรุก ผสานความร่วมมือภาคีเครือข่าย เพื่อยกระดับคุณภาพชีวิตอย่างยั่งยืน",
             navHome: "หน้าหลัก HOME",
             navAbout: "เกี่ยวกับ ABOUT US",
             history: "ประวัติความเป็นมา",
@@ -21,7 +21,6 @@ const translations = {
             nnetExamSchedule: "ตารางการทดสอบระดับชาติ N-NET",
             registrationPlan: "แผนการลงทะเบียนเรียน",
             academicCalendar: "ปฏิทินการศึกษา",
-            navAchievement: "การดำเนินงาน ACHIEVEMENT",
             navContact: "ติดต่อเรา CONTACT US",
             more: "ดูเพิ่มเติม",
             readMore: "อ่านต่อ",
@@ -30,7 +29,6 @@ const translations = {
             homeShort: "หน้าแรก",
             aboutShort: "เกี่ยวกับเรา",
             activityNewsTitle: "ข่าวเด่นประจำวัน",
-            achievementShort: "การดำเนินงาน",
             contactShort: "ติดต่อเรา",
             moreInfo: "สอบถามข้อมูลเพิ่มเติม",
             aboutAgency: "เกี่ยวกับหน่วยงาน",
@@ -55,7 +53,7 @@ const translations = {
             searchPlaceholder: "คำค้นหา : ชื่อกิจกรรม เอกสาร หรือคำที่เกี่ยวข้อง",
             searchButton: "ค้นหา",
             noticeTitle: "ประกาศ",
-            announceText: "สมัครฟรี ไม่มีค่าใช้จ่าย สอบเทียบวัดระดับความรู้ ครั้งที่ 3 ระดับการศึกษาขั้นพื้นฐาน รับสมัครตั้งแต่วันนี้ถึง 7 กรกฎาคม 2568",
+            announceText: "ยังไม่มีประกาศในขณะนี้",
             urgentNewsTitle: "ข่าวประกาศด่วน",
             directorName: "นายอาคม กิจการ",
             directorTitle: "ผู้อำนวยการสถานศึกษาโรงเรียนผู้ใหญ่เทศบาลนครนครศรีธรรมราช",
@@ -254,7 +252,7 @@ const translations = {
 
 translations.en.common = {
     schoolName: "Nakhon Si Thammarat Municipality Adult School",
-    slogan: "\"Good Learning, Happy Life\"",
+    slogan: "Leading equitable educational opportunities through active learning innovation and network collaboration to sustainably enhance quality of life.",
     navHome: "Home",
     navAbout: "About Us",
     history: "History",
@@ -273,7 +271,6 @@ translations.en.common = {
     nnetExamSchedule: "National N-NET Examination Schedule",
     registrationPlan: "Registration Plan",
     academicCalendar: "Academic Calendar",
-    navAchievement: "Achievements",
     navContact: "Contact Us",
     more: "View More",
     readMore: "Read More",
@@ -282,7 +279,6 @@ translations.en.common = {
     homeShort: "Home",
     aboutShort: "About Us",
     activityNewsTitle: "News and Activities",
-    achievementShort: "Achievements",
     contactShort: "Contact Us",
     moreInfo: "More Information",
     aboutAgency: "About the Agency",
@@ -308,7 +304,7 @@ translations.en.index = {
     searchPlaceholder: "Keyword: activity name, document, or related term",
     searchButton: "Search",
     noticeTitle: "Announcement",
-    announceText: "Free registration for the 3rd basic education equivalency assessment. Applications are open now through July 7, 2025.",
+    announceText: "No announcement at this time.",
     urgentNewsTitle: "Urgent Announcements",
     directorName: "Ms. Chutima Klamklai",
     directorTitle: "Director of Nakhon Si Thammarat Municipality Adult School",
@@ -506,7 +502,7 @@ Object.assign(translations.en, {
 
 const commonBindings = [
     [".brand h1", "common.schoolName"],
-    [".nav > a:nth-of-type(1)", "common.navHome"],
+    [".nav > a[href='index.html'], .nav > a[data-i18n='navHome']", "common.navHome"],
     [".nav .dropdown:nth-of-type(1) > button", "common.navAbout"],
     [".nav .dropdown:nth-of-type(1) .dropdown-menu a:nth-child(1)", "common.history"],
     [".nav .dropdown:nth-of-type(1) .dropdown-menu a:nth-child(2)", "common.authority"],
@@ -517,8 +513,14 @@ const commonBindings = [
     [".nav .dropdown:nth-of-type(2) .dropdown-menu a:nth-child(1)", "common.publicNews"],
     [".nav .dropdown:nth-of-type(2) .dropdown-menu a:nth-child(2)", "common.jobsNews"],
     [".nav .dropdown:nth-of-type(2) .dropdown-menu a:nth-child(3)", "common.procurement"],
-    [".nav > a:nth-of-type(2)", "common.navAchievement"],
-    [".nav > a:nth-of-type(3)", "common.navContact"],
+    [".nav .dropdown:nth-of-type(3) > button", "common.navStudentServices"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(1)", "common.curriculumGuide"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(2)", "common.studentForms"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(3)", "common.finalExamSchedule"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(4)", "common.nnetExamSchedule"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(5)", "common.registrationPlan"],
+    [".nav .dropdown:nth-of-type(3) .dropdown-menu a:nth-child(6)", "common.academicCalendar"],
+    [".nav > a[href='contact.html']", "common.navContact"],
     [".footer-top h3:first-of-type", "common.schoolName"],
     [".social-contact h3", "common.moreInfo"],
     [".footer-grid > div:nth-child(1) h3", "common.aboutAgency"],
@@ -527,8 +529,7 @@ const commonBindings = [
     [".footer-grid > div:nth-child(2) li:nth-child(1)", "common.homeShort"],
     [".footer-grid > div:nth-child(2) li:nth-child(2)", "common.aboutShort"],
     [".footer-grid > div:nth-child(2) li:nth-child(3)", "common.activityNewsTitle"],
-    [".footer-grid > div:nth-child(2) li:nth-child(4)", "common.achievementShort"],
-    [".footer-grid > div:nth-child(2) li:nth-child(5) a", "common.contactShort"],
+    [".footer-grid > div:nth-child(2) a[href='contact.html']", "common.contactShort"],
     [".footer-grid > div:nth-child(3) h3", "common.educationServices"],
     [".footer-grid > div:nth-child(3) li:nth-child(1)", "common.basicEducation"],
     [".footer-grid > div:nth-child(3) li:nth-child(2)", "common.continuingEducation"],
@@ -822,7 +823,7 @@ const NIGHT_MODE_KEY = "schoolNightMode";
 const applyNightMode = (enabled) => {
     document.body.classList.toggle("night-mode", enabled);
     document.querySelectorAll("[data-night-toggle]").forEach((button) => {
-        button.textContent = enabled ? "วัน" : "คืน";
+        button.textContent = enabled ? "สว่าง" : "มืด ";
         button.setAttribute("aria-pressed", String(enabled));
         button.setAttribute("aria-label", enabled ? "ปิดพื้นหลังกลางคืน" : "เปิดพื้นหลังกลางคืน");
     });

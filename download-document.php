@@ -69,10 +69,12 @@ $mimeTypes = [
 $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
 $asciiName = preg_replace('/[^\x20-\x7E]/', '_', $downloadName);
 $asciiName = $asciiName !== '' ? $asciiName : $fallbackName;
+$forceDownload = ($_GET['download'] ?? '') === '1';
+$disposition = $extension === 'pdf' && !$forceDownload ? 'inline' : 'attachment';
 
 header('Content-Type: ' . $mimeType);
 header('Content-Length: ' . (string)filesize($filePath));
-header('Content-Disposition: attachment; filename="' . $asciiName . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
+header('Content-Disposition: ' . $disposition . '; filename="' . $asciiName . '"; filename*=UTF-8\'\'' . rawurlencode($downloadName));
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: private, max-age=0, must-revalidate');
 

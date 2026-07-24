@@ -46,5 +46,20 @@ function ensure_news_document_schema(): void
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
+    db()->exec(
+        'CREATE TABLE IF NOT EXISTS news_images (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            news_item_id INT UNSIGNED NOT NULL,
+            image_url VARCHAR(500) NOT NULL,
+            alt_text VARCHAR(255) NULL,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_news_image_item
+                FOREIGN KEY (news_item_id) REFERENCES news_items(id)
+                ON UPDATE CASCADE ON DELETE CASCADE,
+            INDEX idx_news_image_item (news_item_id, sort_order)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
     $ensured = true;
 }

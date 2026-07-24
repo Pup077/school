@@ -59,6 +59,33 @@ function uploaded_news_image_path(): ?string
     return 'uploads/news/' . $filename;
 }
 
+function uploaded_content_images(): array
+{
+    if (empty($_FILES['contentImages']) || !is_array($_FILES['contentImages'])) return [];
+    $files = $_FILES['contentImages'];
+    $names = is_array($files['name'] ?? null) ? $files['name'] : [];
+    $activeIndexes = array_keys(array_filter($names, static fn($name): bool => trim((string)$name) !== ''));
+    if (count($activeIndexes) > 20) send_json(['ok' => false, 'message' => 'อัปโหลดรูปในเนื้อหาได้ไม่เกิน 20 รูปต่อครั้ง'], 422);
+
+    $images = [];
+    foreach ($activeIndexes as $index) {
+        $error = $files['error'][$index] ?? UPLOAD_ERR_NO_FILE;
+        if ($error !== UPLOAD_ERR_OK) send_json(['ok' => false, 'message' => 'อัปโหลดรูปในเนื้อหาไม่สำเร็จ'], 422);
+        if (($files['size'][$index] ?? 0) > 5 * 1024 * 1024) send_json(['ok' => false, 'message' => 'รูปแต่ละรูปต้องมีขนาดไม่เกิน 5MB'], 422);
+        $tmpPath = (string)($files['tmp_name'][$index] ?? '');
+        $mimeType = is_file($tmpPath) ? (string)mime_content_type($tmpPath) : '';
+        $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        if (!isset($extensions[$mimeType])) send_json(['ok' => false, 'message' => 'รูปในเนื้อหารองรับเฉพาะ jpg, png และ webp'], 422);
+        $uploadDir = __DIR__ . '/uploads/news';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0775, true);
+        $filename = date('YmdHis') . '-content-' . bin2hex(random_bytes(8)) . '.' . $extensions[$mimeType];
+        $targetPath = $uploadDir . '/' . $filename;
+        if (!move_uploaded_file($tmpPath, $targetPath) && !rename($tmpPath, $targetPath)) send_json(['ok' => false, 'message' => 'บันทึกรูปในเนื้อหาไม่สำเร็จ'], 500);
+        $images[] = ['url' => 'uploads/news/' . $filename, 'alt' => pathinfo((string)$names[$index], PATHINFO_FILENAME)];
+    }
+    return $images;
+}
+
 function save_uploaded_news_document(array $file): ?array
 {
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
@@ -207,6 +234,31 @@ function fetch_news_documents(array $newsIds): array
     return $documents;
 }
 
+function fetch_news_images(array $newsIds): array
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $newsIds))));
+    if (!$ids) return [];
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare("SELECT id, news_item_id, image_url, alt_text FROM news_images WHERE news_item_id IN ({$placeholders}) ORDER BY sort_order ASC, id ASC");
+    $stmt->execute($ids);
+    $images = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $newsId = (string)$row['news_item_id'];
+        $images[$newsId][] = ['id'=>(string)$row['id'], 'newsId'=>$newsId, 'url'=>$row['image_url'], 'alt'=>$row['alt_text'] ?? ''];
+    }
+    return $images;
+}
+
+function replace_news_images(int $newsId, array $images): void
+{
+    db()->prepare('DELETE FROM news_images WHERE news_item_id = :news_id')->execute(['news_id' => $newsId]);
+    if (!$images) return;
+    $stmt = db()->prepare('INSERT INTO news_images (news_item_id, image_url, alt_text, sort_order) VALUES (:news_id,:url,:alt,:sort_order)');
+    foreach (array_slice($images, 0, 20) as $index => $image) {
+        $stmt->execute(['news_id'=>$newsId, 'url'=>$image['url'], 'alt'=>$image['alt'] ?? '', 'sort_order'=>$index * 10]);
+    }
+}
+
 function replace_news_documents(int $newsId, array $documents): void
 {
     db()->prepare('DELETE FROM news_documents WHERE news_item_id = :news_id')->execute(['news_id' => $newsId]);
@@ -251,7 +303,7 @@ function document_id_values(mixed $value): array
     ))));
 }
 
-function map_news_row(array $row, array $documents = []): array
+function map_news_row(array $row, array $documents = [], array $images = []): array
 {
     if (!$documents) {
         $legacyDocument = document_from_legacy_fields($row);
@@ -272,6 +324,7 @@ function map_news_row(array $row, array $documents = []): array
         'documentUrl' => $row['document_url'] ?? '',
         'documentName' => $row['document_name'] ?? document_name_from_url($row['document_url'] ?? null) ?? '',
         'documents' => $documents,
+        'contentImages' => $images,
         'announcementNo' => $row['announcement_no'] ?? '',
         'displayStatus' => $row['display_status'] ?? '',
         'metaOne' => $row['meta_one'] ?? '',
@@ -291,9 +344,10 @@ try {
         );
         $rows = $stmt->fetchAll();
         $documents = fetch_news_documents(array_column($rows, 'id'));
+        $images = fetch_news_images(array_column($rows, 'id'));
         send_json([
             'ok' => true,
-            'news' => array_map(static fn(array $row): array => map_news_row($row, $documents[(string)$row['id']] ?? []), $rows),
+            'news' => array_map(static fn(array $row): array => map_news_row($row, $documents[(string)$row['id']] ?? [], $images[(string)$row['id']] ?? []), $rows),
             'currentAdmin' => [
                 'id' => (string)$admin['id'],
                 'username' => $admin['username'] ?? '',
@@ -316,6 +370,8 @@ try {
         $displayStatus = nullable_text($data, 'displayStatus');
         $hasContent = array_key_exists('content', $data);
         $uploadedImage = $type === 'public' ? uploaded_news_image_path() : null;
+        $uploadedContentImages = $type === 'public' ? uploaded_content_images() : [];
+        $keepImageIds = document_id_values($data['keepImageIds'] ?? null);
         $uploadedDocuments = $type !== 'public' ? uploaded_news_documents() : [];
         $firstUploadedDocument = $uploadedDocuments[0] ?? null;
         $documentAction = text_value($data, 'documentAction') === 'manage';
@@ -389,6 +445,12 @@ try {
             if ($type === 'public') {
                 replace_news_documents((int)$id, []);
                 sync_legacy_document_fields((int)$id, []);
+                $existingImages = fetch_news_images([(int)$id]);
+                $currentImages = $existingImages[(string)(int)$id] ?? [];
+                $nextImages = array_values(array_filter($currentImages, static fn(array $image): bool => in_array((string)$image['id'], $keepImageIds, true)));
+                $nextImages = [...$nextImages, ...$uploadedContentImages];
+                if (count($nextImages) > 20) send_json(['ok' => false, 'message' => 'ข่าวหนึ่งรายการมีรูปในเนื้อหาได้ไม่เกิน 20 รูป'], 422);
+                replace_news_images((int)$id, $nextImages);
             } elseif ($documentAction) {
                 $existingDocuments = fetch_news_documents([(int)$id]);
                 $currentDocuments = $existingDocuments[(string)(int)$id] ?? [];
@@ -454,6 +516,8 @@ try {
             }
             replace_news_documents((int)$newId, $documentsToSave);
             sync_legacy_document_fields((int)$newId, $documentsToSave);
+        } else {
+            replace_news_images((int)$newId, $uploadedContentImages);
         }
         write_admin_log((int)$admin['id'], 'create_news', 'news_item', $newId, $title, 'เพิ่มข่าว ' . $title);
 

@@ -65,6 +65,13 @@ function news_documents(int $newsId, array $item): array
     return $documents;
 }
 
+function news_content_images(int $newsId): array
+{
+    $stmt = db()->prepare('SELECT image_url, alt_text FROM news_images WHERE news_item_id = :news_id ORDER BY sort_order ASC, id ASC');
+    $stmt->execute(['news_id' => $newsId]);
+    return $stmt->fetchAll();
+}
+
 function type_label(?string $type): string
 {
     return match ($type) {
@@ -107,6 +114,7 @@ $meta = array_filter([
     isset($item['updated_at']) ? 'อัปเดตล่าสุด ' . thai_datetime($item['updated_at']) : null,
 ]);
 $documents = $item ? news_documents((int)$item['id'], $item) : [];
+$contentImages = $item ? news_content_images((int)$item['id']) : [];
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -167,8 +175,11 @@ $documents = $item ? news_documents((int)$item['id'], $item) : [];
                     <a href="academic-calendar.html">ปฏิทินการศึกษา</a>
                 </div>
             </div>
-            <a href="acievement.html">การดำเนินงาน ACHIEVEMENT</a>
             <a href="contact.html">ติดต่อเรา CONTACT US</a>
+            <a class="online-application-link" href="https://docs.google.com/forms/d/e/1FAIpQLSfG4m92vubaF668XcgV-6QTfQkTpGSdPcSX7e3EojAPjFdD8Q/viewform" target="_blank" rel="noopener" aria-label="สมัครเรียนออนไลน์ ภาคเรียนที่ 1 ปีการศึกษา 2569">
+                <strong>สมัครเรียนออนไลน์ <span>NEW</span></strong>
+                <small>ภาคเรียนที่ 1 ปีการศึกษา 2569</small>
+            </a>
         </nav>
     </div>
 
@@ -213,10 +224,20 @@ $documents = $item ? news_documents((int)$item['id'], $item) : [];
                         <?= nl2br(h($bodyText)) ?>
                     </div>
 
+                    <?php if ($contentImages): ?>
+                        <div class="news-content-gallery" aria-label="รูปภาพประกอบข่าว">
+                            <?php foreach ($contentImages as $index => $image): ?>
+                                <figure>
+                                    <img src="<?= h($image['image_url']) ?>" alt="<?= h($image['alt_text'] ?: $item['title'] . ' รูปที่ ' . ($index + 1)) ?>" loading="lazy">
+                                </figure>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if ($documents): ?>
                         <div class="detail-document-list">
                             <?php foreach ($documents as $document): ?>
-                                <a class="read-more" href="download-document.php?<?= !empty($document['legacy']) ? 'id' : 'document' ?>=<?= h((string)$document['id']) ?>">
+                                <a class="read-more" href="download-document.php?<?= !empty($document['legacy']) ? 'id' : 'document' ?>=<?= h((string)$document['id']) ?>"<?= strtolower(pathinfo((string)($document['name'] ?? $document['url'] ?? ''), PATHINFO_EXTENSION)) === 'pdf' ? ' target="_blank" rel="noopener"' : '' ?>>
                                     เปิดเอกสารแนบ<?= !empty($document['name']) ? ': ' . h($document['name']) : '' ?>
                                 </a>
                             <?php endforeach; ?>

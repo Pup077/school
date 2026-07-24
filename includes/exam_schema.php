@@ -1,0 +1,7 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/db.php';
+function ensure_exam_schema(): void {
+ db()->exec('CREATE TABLE IF NOT EXISTS exam_posts (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, exam_type ENUM("final","nnet") NOT NULL, title VARCHAR(500) NOT NULL, summary TEXT NOT NULL, content LONGTEXT NULL, cover_image VARCHAR(500) NULL, status ENUM("draft","published") NOT NULL DEFAULT "published", created_by INT UNSIGNED NULL, updated_by INT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX idx_exam_type_status(exam_type,status), CONSTRAINT fk_exam_created_by FOREIGN KEY(created_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE, CONSTRAINT fk_exam_updated_by FOREIGN KEY(updated_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+ db()->exec('CREATE TABLE IF NOT EXISTS exam_post_images (id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, exam_post_id INT UNSIGNED NOT NULL, image_url VARCHAR(500) NOT NULL, alt_text VARCHAR(255) NULL, sort_order INT NOT NULL DEFAULT 0, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, CONSTRAINT fk_exam_image_post FOREIGN KEY(exam_post_id) REFERENCES exam_posts(id) ON DELETE CASCADE ON UPDATE CASCADE, INDEX idx_exam_image(exam_post_id,sort_order)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+}

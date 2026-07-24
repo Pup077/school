@@ -5,6 +5,8 @@ const ADMIN_AUDIT_STORAGE_KEY = "schoolAdminAuditLogs";
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin123";
 let databaseNews = null;
+let publicSiteSettings = null;
+let databaseCalendarEvents = [];
 let homeHeroTimer = null;
 let scheduleCalendarDate = new Date();
 let scheduleCalendarUserSelected = false;
@@ -213,6 +215,11 @@ const downloadUrl = (item, document = null) => {
     return `download-document.php?id=${encodeURIComponent(item.id)}`;
 };
 
+const isPdfDocument = (document = {}) => {
+    const value = String(document.name || document.url || "").split(/[?#]/)[0].toLowerCase();
+    return value.endsWith(".pdf");
+};
+
 const splitDisplayDate = (dateText = "") => {
     const text = String(dateText || "").trim();
     const dayMatch = text.match(/\d{1,2}/);
@@ -392,6 +399,14 @@ const renderHomeNews = () => {
     }
 };
 
+const renderHomeNotice = () => {
+    const notice = document.querySelector("[data-home-notice]");
+    if (!notice) return;
+
+    const text = String(publicSiteSettings?.noticeText || "").trim();
+    notice.textContent = text || "ยังไม่มีประกาศในขณะนี้";
+};
+
 const renderUrgentNewsList = () => {
     const list = document.querySelector("[data-urgent-news-list]");
     if (!list) return;
@@ -451,13 +466,14 @@ const renderDownloadSection = () => {
         const itemDocuments = documentsForItem(item);
         const firstDocument = itemDocuments[0] || null;
         const hasDocument = Boolean(firstDocument);
+        const isPdf = hasDocument && isPdfDocument(firstDocument);
         const href = hasDocument ? downloadUrl(item, firstDocument) : detailUrl(item);
         return `
             <article class="download-box">
                 <span class="download-type">${escapeHtml(newsTypeLabels[item.type] || "ข่าว")}</span>
                 <h3>${escapeHtml(item.title)}</h3>
                 <p>${escapeHtml(firstDocument?.name || item.summary || item.date || "ดูรายละเอียดเพิ่มเติม")}</p>
-                <a class="more" href="${escapeHtml(href)}">${hasDocument ? "ดาวน์โหลด" : "ดูรายละเอียด"}</a>
+                <a class="more" href="${escapeHtml(href)}" ${isPdf ? 'target="_blank" rel="noopener"' : ''}>${hasDocument ? (isPdf ? "เปิด PDF" : "ดาวน์โหลด") : "ดูรายละเอียด"}</a>
             </article>
         `;
     }).join("");
@@ -499,7 +515,7 @@ const renderDownloadsArchive = () => {
                 <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
                 <p>${escapeHtml(name)}</p>
             </div>
-            <a class="read-more" href="${escapeHtml(downloadUrl(item, document))}">ดาวน์โหลด</a>
+            <a class="read-more" href="${escapeHtml(downloadUrl(item, document))}" ${isPdfDocument(document) ? 'target="_blank" rel="noopener"' : ''}>${isPdfDocument(document) ? "เปิด PDF" : "ดาวน์โหลด"}</a>
         </article>
     `).join("");
 };
@@ -517,7 +533,7 @@ const renderEventCalendar = () => {
     const grid = document.querySelector("[data-event-calendar]");
     if (!grid) return;
 
-    const items = [...publishedNews("public")]
+    const items = [...scheduleItems()]
         .sort((a, b) => eventTimestamp(b) - eventTimestamp(a))
         .slice(0, 4);
     if (!items.length) {
@@ -529,22 +545,41 @@ const renderEventCalendar = () => {
         const dateParts = splitCalendarDate(item);
         return `
             <article class="calendar-card">
-                <a href="${escapeHtml(detailUrl(item))}">
+                <div class="calendar-event-card">
                     <div class="calendar-date">
                         <strong>${escapeHtml(dateParts.day)}</strong>
                         <span>${escapeHtml(dateParts.month)}</span>
                     </div>
                     <div>
                         <h3>${escapeHtml(item.title)}</h3>
-                        <p>${escapeHtml(item.summary || item.author || "ดูรายละเอียดกิจกรรม")}</p>
+                        <p>${escapeHtml(item.description || item.typeLabel || "กิจกรรมตามปฏิทิน")}</p>
                     </div>
-                </a>
+                </div>
             </article>
         `;
     }).join("");
 };
 
-const scheduleItems = () => [...publishedNews("public")]
+const automaticThaiCalendarEvents = () => {
+    const currentYear = scheduleCalendarDate.getFullYear();
+    const definitions = [
+        [1, 1, "วันขึ้นปีใหม่", "holiday"], [1, 16, "วันครู", "important"],
+        [4, 6, "วันจักรี", "holiday"], [4, 13, "วันสงกรานต์", "holiday"],
+        [4, 14, "วันสงกรานต์", "holiday"], [4, 15, "วันสงกรานต์", "holiday"],
+        [5, 1, "วันแรงงานแห่งชาติ", "holiday"], [5, 4, "วันฉัตรมงคล", "holiday"],
+        [6, 3, "วันเฉลิมพระชนมพรรษาสมเด็จพระนางเจ้าฯ พระบรมราชินี", "holiday"],
+        [6, 26, "วันต่อต้านยาเสพติดโลก", "important"], [7, 28, "วันเฉลิมพระชนมพรรษาพระบาทสมเด็จพระเจ้าอยู่หัว", "holiday"],
+        [8, 12, "วันแม่แห่งชาติ", "holiday"], [9, 20, "วันเยาวชนแห่งชาติ", "important"],
+        [10, 13, "วันนวมินทรมหาราช", "holiday"], [10, 23, "วันปิยมหาราช", "holiday"],
+        [12, 5, "วันพ่อแห่งชาติ", "holiday"], [12, 10, "วันรัฐธรรมนูญ", "holiday"], [12, 31, "วันสิ้นปี", "holiday"]
+    ];
+    return [currentYear - 1, currentYear, currentYear + 1].flatMap((year) => definitions.map(([month, day, title, type]) => ({
+        id: `auto-${year}-${month}-${day}`, title, description: type === "holiday" ? "วันหยุดประจำปี (แสดงอัตโนมัติ)" : "วันสำคัญ (แสดงอัตโนมัติ)",
+        publishDate: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`, type, typeLabel: type === "holiday" ? "วันหยุด" : "วันสำคัญ", automatic: true
+    })));
+};
+
+const scheduleItems = () => [...databaseCalendarEvents, ...automaticThaiCalendarEvents()]
     .filter((item) => scheduleDateValue(item))
     .sort((a, b) => eventTimestamp(a) - eventTimestamp(b));
 
@@ -601,7 +636,7 @@ const renderScheduleCalendarPage = () => {
             cells.push(`
                 <div class="schedule-day ${dayItems.length ? "has-event" : ""}">
                     <strong>${escapeHtml(day)}</strong>
-                    ${dayItems.slice(0, 2).map((item) => `<a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a>`).join("")}
+                    ${dayItems.slice(0, 2).map((item) => `<span class="schedule-event ${escapeHtml(item.type || "school")}">${escapeHtml(item.title)}</span>`).join("")}
                     ${dayItems.length > 2 ? `<span>+${escapeHtml(dayItems.length - 2)} รายการ</span>` : ""}
                 </div>
             `);
@@ -624,8 +659,8 @@ const renderScheduleCalendarPage = () => {
                         <span>${escapeHtml(parts.month)}</span>
                     </div>
                     <div>
-                        <h3><a href="${escapeHtml(detailUrl(item))}">${escapeHtml(item.title)}</a></h3>
-                        <p>${escapeHtml(item.summary || item.author || "ดูรายละเอียดกำหนดการ")}</p>
+                        <h3>${escapeHtml(item.title)}</h3>
+                        <p>${escapeHtml(item.description || item.typeLabel || "กิจกรรมตามปฏิทิน")}</p>
                     </div>
                 </article>
             `;
@@ -1001,6 +1036,7 @@ const initAdminSessionStatus = async () => {
 
 const renderAllDynamicContent = () => {
     renderHomeNews();
+    renderHomeNotice();
     renderUrgentNewsList();
     renderActivityGallery();
     renderDownloadSection();
@@ -1028,9 +1064,40 @@ const loadDatabaseNews = async () => {
     }
 };
 
+const loadDatabaseCalendar = async () => {
+    try {
+        const response = await fetch("public_calendar.php", { headers: { "Accept": "application/json" }, cache: "no-store" });
+        const data = await response.json();
+        databaseCalendarEvents = data.ok && Array.isArray(data.events) ? data.events.map((item) => ({ ...item, publishDate: item.date })) : [];
+        renderEventCalendar();
+        renderScheduleCalendarPage();
+    } catch (error) {
+        databaseCalendarEvents = [];
+        renderEventCalendar();
+        renderScheduleCalendarPage();
+    }
+};
+
+const loadPublicSiteSettings = async () => {
+    try {
+        const response = await fetch("public_site_settings.php", {
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.message || "Settings unavailable");
+        publicSiteSettings = data.settings || {};
+    } catch (error) {
+        publicSiteSettings = {};
+    }
+    renderHomeNotice();
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     renderAllDynamicContent();
     loadDatabaseNews();
+    loadDatabaseCalendar();
+    loadPublicSiteSettings();
     initAdminLogin();
     initAdminRegistration();
     initAdminPhpMessages();

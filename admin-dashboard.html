@@ -15,6 +15,11 @@
             <p>จัดการข่าวประชาสัมพันธ์ งาน และจัดซื้อจัดจ้าง</p>
             <nav>
                 <a class="active" href="admin-dashboard.php">จัดการข่าวทั้งหมด</a>
+                <a href="#admin-notice">จัดการประกาศหน้าแรก</a>
+                <a href="#admin-registration">จัดการแผนการลงทะเบียน</a>
+                <a href="#admin-exams">จัดการตารางการทดสอบ</a>
+                <a href="#admin-library">จัดการหลักสูตรและแบบฟอร์ม</a>
+                <a href="#admin-calendar">จัดการปฏิทินการศึกษา</a>
                 <a href="#admin-members">จัดการสมาชิก Admin</a>
                 <a href="#admin-history">ประวัติการใช้งาน</a>
                 <a href="index.html">กลับหน้าเว็บไซต์</a>
@@ -102,8 +107,17 @@
                         <input type="text" name="image" inputmode="url" placeholder="https://... หรือ uploads/news/example.jpg">
                     </label>
                     <label data-image-file-field>
-                        <span>อัปโหลดรูปภาพ (jpg, png, webp)</span>
+                        <span>ภาพหน้าปกข่าว (ใช้แสดงบริเวณหัวข่าว)</span>
                         <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    </label>
+                    <div class="admin-document-manager" data-content-image-manager hidden>
+                        <span>รูปภาพในเนื้อหาปัจจุบัน</span>
+                        <div class="admin-current-documents admin-current-images" data-current-image-list></div>
+                        <p class="admin-help">เอาเครื่องหมายถูกออกจากรูปที่ต้องการลบ รูปใหม่จะถูกเพิ่มต่อจากรูปเดิม</p>
+                    </div>
+                    <label data-content-image-field>
+                        <span>รูปภาพในเนื้อหาข่าว (เลือกพร้อมกันได้สูงสุด 20 รูป)</span>
+                        <input type="file" name="contentImages[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple>
                     </label>
                     <label data-document-link-field>
                         <span>ลิงก์หรือ path เอกสาร (ใช้กับข่าวรับสมัครงาน/จัดซื้อจัดจ้าง)</span>
@@ -130,6 +144,80 @@
 
                 <div class="admin-news-list" data-admin-news-list></div>
             </div>
+
+            <section class="admin-section" id="admin-notice">
+                <div class="admin-heading compact">
+                    <div>
+                        <span>HOME NOTICE</span>
+                        <h2>จัดการข้อความประกาศหน้าแรก</h2>
+                    </div>
+                </div>
+                <form class="admin-editor admin-single-panel" data-site-notice-form>
+                    <label>
+                        <span>ข้อความประกาศ</span>
+                        <textarea name="noticeText" rows="4" placeholder="ใส่ข้อความประกาศที่ต้องการแสดงหน้าแรก"></textarea>
+                    </label>
+                    <p class="admin-help">หากเว้นว่าง หน้าแรกจะแสดงว่า “ยังไม่มีประกาศในขณะนี้” แทนข้อความดัมมี่</p>
+                    <div class="admin-actions">
+                        <button type="submit">บันทึกประกาศ</button>
+                    </div>
+                    <p class="admin-status" data-site-notice-status></p>
+                </form>
+            </section>
+
+            <section class="admin-section" id="admin-registration">
+                <div class="admin-heading compact"><div><span>REGISTRATION PLANS</span><h2>จัดการแผนการลงทะเบียนเรียน</h2></div></div>
+                <div class="admin-management-grid"><form class="admin-editor" data-registration-form enctype="multipart/form-data"><input type="hidden" name="id"><label><span>ชื่อแผนการลงทะเบียน</span><input name="title" required></label><label><span>รายละเอียด</span><textarea name="description" rows="4"></textarea></label><label><span>PDF ระดับประถมศึกษา</span><input type="file" name="primaryPdf" accept="application/pdf"></label><div class="admin-current-asset" data-registration-current="primary" hidden></div><label><span>PDF ระดับมัธยมศึกษาตอนต้น</span><input type="file" name="lowerPdf" accept="application/pdf"></label><div class="admin-current-asset" data-registration-current="lower" hidden></div><label><span>PDF ระดับมัธยมศึกษาตอนปลาย</span><input type="file" name="upperPdf" accept="application/pdf"></label><div class="admin-current-asset" data-registration-current="upper" hidden></div><label><span>สถานะ</span><select name="status"><option value="published">เผยแพร่</option><option value="draft">ฉบับร่าง</option></select></label><p class="admin-help">รายการใหม่ต้องมี PDF ครบทั้ง 3 ระดับ เมื่อแก้ไขสามารถเปลี่ยนเฉพาะไฟล์ที่ต้องการได้</p><div class="admin-actions"><button type="submit">บันทึกแผน</button><button class="secondary" type="button" data-reset-registration>ล้างฟอร์ม</button></div><p class="admin-status" data-registration-status></p></form><div class="admin-news-list" data-registration-list></div></div>
+            </section>
+
+            <section class="admin-section" id="admin-exams">
+                <div class="admin-heading compact"><div><span>EXAM SCHEDULES</span><h2>จัดการตารางการทดสอบ</h2></div></div>
+                <div class="admin-management-grid"><form class="admin-editor" data-exam-form enctype="multipart/form-data"><input type="hidden" name="id"><label><span>ประเภท</span><select name="type"><option value="final">ตารางการทดสอบปลายภาคเรียน</option><option value="nnet">ตารางการทดสอบระดับชาติ N-NET</option></select></label><label><span>หัวข้อ</span><input name="title" required></label><label><span>คำโปรย</span><textarea name="summary" rows="3" required></textarea></label><label><span>รายละเอียด</span><textarea name="content" rows="6"></textarea></label><label><span>ภาพหน้าปก</span><input type="file" name="coverImage" accept="image/jpeg,image/png,image/webp"></label><div class="admin-current-asset" data-exam-cover-current hidden></div><div class="admin-document-manager" data-exam-image-manager hidden><span>รูปตารางเดิม</span><div class="admin-current-documents admin-current-images" data-exam-current-images></div><p class="admin-help">นำเครื่องหมายถูกออกจากรูปที่ต้องการลบ</p></div><label><span>รูปตารางในเนื้อหา (เลือกได้สูงสุด 20 รูป)</span><input type="file" name="contentImages[]" accept="image/jpeg,image/png,image/webp" multiple></label><label><span>สถานะ</span><select name="status"><option value="published">เผยแพร่</option><option value="draft">ฉบับร่าง</option></select></label><div class="admin-actions"><button type="submit">บันทึกตารางสอบ</button><button class="secondary" type="button" data-reset-exam>ล้างฟอร์ม</button></div><p class="admin-status" data-exam-status></p></form><div class="admin-news-list" data-exam-admin-list></div></div>
+            </section>
+
+            <section class="admin-section" id="admin-library">
+                <div class="admin-heading compact"><div><span>DOCUMENT LIBRARY</span><h2>จัดการหลักสูตร คู่มือ และแบบฟอร์มนักศึกษา</h2></div></div>
+                <div class="admin-management-grid">
+                    <form class="admin-editor" data-library-form enctype="multipart/form-data">
+                        <input type="hidden" name="id">
+                        <label><span>หมวดเอกสาร</span><select name="category"><option value="curriculum">หลักสูตร/คู่มือ/แนวทางการดำเนินงาน</option><option value="student_form">แบบฟอร์ม/เอกสารสำหรับนักศึกษา</option></select></label>
+                        <label><span>ชื่อเอกสาร</span><input type="text" name="title" required></label>
+                        <label><span>รายละเอียด</span><textarea name="description" rows="4"></textarea></label>
+                        <label><span>ผู้เขียน</span><input type="text" name="author" readonly placeholder="ชื่อผู้ดูแลระบบที่เข้าสู่ระบบ"></label>
+                        <label><span>ไฟล์ PDF (ไม่เกิน 30MB)</span><input type="file" name="pdfFile" accept=".pdf,application/pdf"></label>
+                        <p class="admin-help" data-library-current-file>การเพิ่มรายการใหม่จำเป็นต้องเลือกไฟล์ PDF</p>
+                        <label><span>สถานะ</span><select name="status"><option value="published">เผยแพร่</option><option value="draft">ฉบับร่าง</option></select></label>
+                        <div class="admin-actions"><button type="submit">บันทึกเอกสาร</button><button class="secondary" type="button" data-reset-library>ล้างฟอร์ม</button></div>
+                        <p class="admin-status" data-library-status></p>
+                    </form>
+                    <div class="admin-news-list" data-library-admin-list></div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="admin-calendar">
+                <div class="admin-heading compact">
+                    <div>
+                        <span>ACADEMIC CALENDAR</span>
+                        <h2>จัดการปฏิทินการศึกษา</h2>
+                    </div>
+                </div>
+                <div class="admin-management-grid">
+                    <form class="admin-editor" data-calendar-form>
+                        <input type="hidden" name="id">
+                        <label><span>ชื่อกิจกรรม / วันสำคัญ</span><input type="text" name="title" required></label>
+                        <label><span>รายละเอียด</span><textarea name="description" rows="4"></textarea></label>
+                        <div class="admin-form-row">
+                            <label><span>วันที่</span><input type="date" name="date" required></label>
+                            <label><span>ประเภท</span><select name="type"><option value="school">กิจกรรมโรงเรียน</option><option value="holiday">วันหยุด</option><option value="important">วันสำคัญ</option></select></label>
+                        </div>
+                        <label><span>สถานะ</span><select name="status"><option value="published">เผยแพร่</option><option value="draft">ฉบับร่าง</option></select></label>
+                        <p class="admin-help">วันหยุดและวันสำคัญประจำปีแบบวันที่คงที่จะถูกแสดงให้อัตโนมัติ ไม่ต้องเพิ่มซ้ำ</p>
+                        <div class="admin-actions"><button type="submit">บันทึกกิจกรรม</button><button class="secondary" type="button" data-reset-calendar>ล้างฟอร์ม</button></div>
+                        <p class="admin-status" data-calendar-status></p>
+                    </form>
+                    <div class="admin-news-list" data-calendar-list></div>
+                </div>
+            </section>
 
             <section class="admin-section" id="admin-members">
                 <div class="admin-heading compact">
@@ -186,7 +274,7 @@
         </section>
     </main>
 
-    <script src="site-news.js?v=20260715-1"></script>
-    <script src="admin-dashboard.js?v=20260715-1"></script>
+    <script src="site-news.js?v=20260723-1"></script>
+    <script src="admin-dashboard.js?v=20260723-4"></script>
 </body>
 </html>

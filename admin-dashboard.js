@@ -15,9 +15,27 @@ const memberForm = document.querySelector("[data-admin-member-form]");
 const memberList = document.querySelector("[data-admin-member-list]");
 const memberStatusText = document.querySelector("[data-admin-member-status]");
 const historyList = document.querySelector("[data-admin-history-list]");
+const calendarForm = document.querySelector("[data-calendar-form]");
+const calendarList = document.querySelector("[data-calendar-list]");
+const calendarStatus = document.querySelector("[data-calendar-status]");
+const libraryForm = document.querySelector("[data-library-form]");
+const libraryList = document.querySelector("[data-library-admin-list]");
+const libraryStatus = document.querySelector("[data-library-status]");
+const examForm = document.querySelector("[data-exam-form]");
+const examList = document.querySelector("[data-exam-admin-list]");
+const examStatus = document.querySelector("[data-exam-status]");
+const registrationForm = document.querySelector("[data-registration-form]");
+const registrationList = document.querySelector("[data-registration-list]");
+const registrationStatus = document.querySelector("[data-registration-status]");
+const siteNoticeForm = document.querySelector("[data-site-notice-form]");
+const siteNoticeStatus = document.querySelector("[data-site-notice-status]");
 
 let dbNews = [];
 let dbMembers = [];
+let dbCalendarEvents = [];
+let dbLibraryDocuments = [];
+let dbExamPosts = [];
+let dbRegistrationPlans = [];
 let currentAdminId = "";
 let currentAdminName = "";
 let currentAdminRole = "editor";
@@ -69,6 +87,22 @@ const actionLabels = {
     create_news: "เพิ่มข่าว",
     update_news: "แก้ไขข่าว",
     delete_news: "ลบข่าว"
+    ,create_calendar: "เพิ่มกิจกรรมปฏิทิน", update_calendar: "แก้ไขกิจกรรมปฏิทิน", delete_calendar: "ลบกิจกรรมปฏิทิน"
+    ,create_library: "เพิ่มหลักสูตร/แบบฟอร์ม", update_library: "แก้ไขหลักสูตร/แบบฟอร์ม", delete_library: "ลบหลักสูตร/แบบฟอร์ม"
+    ,create_exam: "เพิ่มตารางการทดสอบ", update_exam: "แก้ไขตารางการทดสอบ", delete_exam: "ลบตารางการทดสอบ"
+    ,create_registration: "เพิ่มแผนลงทะเบียน", update_registration: "แก้ไขแผนลงทะเบียน", delete_registration: "ลบแผนลงทะเบียน"
+    ,create_admin: "เพิ่มสมาชิก Admin", update_admin: "แก้ไขสมาชิก Admin", delete_admin: "ลบสมาชิก Admin"
+    ,update_site_notice: "แก้ไขประกาศหน้าแรก"
+};
+
+const targetTypeLabels = {
+    news_item: "ข่าว",
+    admin_user: "สมาชิก Admin",
+    calendar_event: "ปฏิทินการศึกษา",
+    library_document: "หลักสูตร/แบบฟอร์ม",
+    exam_post: "ตารางการทดสอบ",
+    registration_plan: "แผนการลงทะเบียน",
+    site_setting: "ตั้งค่าเว็บไซต์"
 };
 
 const thaiMonthNames = [
@@ -122,7 +156,13 @@ const apiRequest = async (url, options = {}) => {
         cache: "no-store",
         ...options
     });
-    const data = await response.json();
+    const responseText = await response.text();
+    let data;
+    try {
+        data = JSON.parse(responseText);
+    } catch (error) {
+        throw new Error("เซิร์ฟเวอร์ประมวลผลไม่สำเร็จ กรุณาตรวจสอบ PHP error log");
+    }
     if (!response.ok || !data.ok) {
         throw new Error(data.message || "เกิดข้อผิดพลาด");
     }
@@ -139,10 +179,12 @@ const emptyForm = () => {
     form.elements.date.value = todayIsoDate();
     form.elements.image.value = "";
     if (form.elements.imageFile) form.elements.imageFile.value = "";
+    if (form.elements.contentImages) form.elements.contentImages.value = "";
     if (form.elements.documentFile) form.elements.documentFile.value = "";
     if (form.elements.document) form.elements.document.value = "";
     if (form.elements.documentName) form.elements.documentName.value = "";
     renderCurrentDocumentControls([]);
+    renderCurrentImageControls([]);
     configureNewsTypeFields("public");
 };
 
@@ -239,12 +281,33 @@ const renderCurrentDocumentControls = (documents = []) => {
     }).join("");
 };
 
+const renderCurrentImageControls = (images = []) => {
+    const box = form.querySelector("[data-current-image-list]");
+    const manager = form.querySelector("[data-content-image-manager]");
+    if (!box || !manager) return;
+    if (!images.length) {
+        box.innerHTML = "";
+        toggleFormField(manager, false);
+        return;
+    }
+    box.innerHTML = images.map((image, index) => `
+        <label class="admin-image-row">
+            <input type="checkbox" name="keepImageIds[]" value="${escapeHtml(image.id)}" checked>
+            <img src="${escapeHtml(image.url)}" alt="รูปประกอบ ${index + 1}">
+            <span>เก็บรูปที่ ${index + 1}</span>
+        </label>
+    `).join("");
+    toggleFormField(manager, true);
+};
+
 const configureNewsTypeFields = (type = "public", values = {}) => {
     const config = newsTypeConfig[type] || newsTypeConfig.public;
     const categoryField = form.querySelector("[data-category-field]");
     const displayStatusField = form.querySelector("[data-display-status-field]");
     const imageLinkField = form.querySelector("[data-image-link-field]");
     const imageFileField = form.querySelector("[data-image-file-field]");
+    const contentImageField = form.querySelector("[data-content-image-field]");
+    const contentImageManager = form.querySelector("[data-content-image-manager]");
     const documentLinkField = form.querySelector("[data-document-link-field]");
     const documentFileField = form.querySelector("[data-document-file-field]");
     const documentManager = form.querySelector("[data-document-manager]");
@@ -255,6 +318,9 @@ const configureNewsTypeFields = (type = "public", values = {}) => {
     toggleFormField(displayStatusField, config.showDisplayStatus);
     toggleFormField(imageLinkField, isImageMode);
     toggleFormField(imageFileField, isImageMode);
+    toggleFormField(contentImageField, isImageMode);
+    if (!isImageMode) toggleFormField(contentImageManager, false);
+    else if (contentImageManager) contentImageManager.hidden = !contentImageManager.querySelector("input[name='keepImageIds[]']");
     toggleFormField(documentLinkField, !isImageMode);
     toggleFormField(documentFileField, !isImageMode);
     toggleFormField(documentManager, !isImageMode);
@@ -440,7 +506,7 @@ const renderAuditLogs = async (page = historyPage) => {
         ${logs.map((log) => `
             <article class="admin-history-item">
                 <div>
-                    <span>${escapeHtml(actionLabels[log.action] || log.action)} / ${escapeHtml(log.targetType)}</span>
+                    <span>${escapeHtml(actionLabels[log.action] || log.action)} / ${escapeHtml(targetTypeLabels[log.targetType] || log.targetType)}</span>
                     <h3>${escapeHtml(log.targetName || log.actorName || "-")}</h3>
                     <p>${escapeHtml(log.detail || "-")} ${log.ipAddress ? `IP: ${escapeHtml(log.ipAddress)}` : ""}</p>
                 </div>
@@ -471,10 +537,12 @@ const fillForm = (item) => {
     const documents = adminDocumentsForItem(item);
     const firstDocument = documents[0] || {};
     if (form.elements.imageFile) form.elements.imageFile.value = "";
+    if (form.elements.contentImages) form.elements.contentImages.value = "";
     if (form.elements.document) form.elements.document.value = firstDocument.url || "";
     if (form.elements.documentName) form.elements.documentName.value = firstDocument.name || documentNameFromUrl(firstDocument.url);
     if (form.elements.documentFile) form.elements.documentFile.value = "";
     renderCurrentDocumentControls(documents);
+    renderCurrentImageControls(Array.isArray(item.contentImages) ? item.contentImages : []);
     form.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 
@@ -503,14 +571,91 @@ const fillMemberForm = (user) => {
 
 const getFormValue = (formData, key) => String(formData.get(key) || "").trim();
 
+const emptyCalendarForm = () => {
+    if (!calendarForm) return;
+    calendarForm.reset();
+    calendarForm.elements.id.value = "";
+    calendarForm.elements.date.value = todayIsoDate();
+    calendarForm.elements.type.value = "school";
+    calendarForm.elements.status.value = "published";
+};
+
+const loadCalendarEvents = async () => {
+    const data = await apiRequest("admin_calendar.php?action=list");
+    dbCalendarEvents = Array.isArray(data.events) ? data.events : [];
+};
+
+const renderCalendarEvents = () => {
+    if (!calendarList) return;
+    const typeLabels = { school: "กิจกรรมโรงเรียน", holiday: "วันหยุด", important: "วันสำคัญ" };
+    calendarList.innerHTML = dbCalendarEvents.length ? dbCalendarEvents.map((item) => `
+        <article class="admin-news-item">
+            <div>
+                <span>${escapeHtml(item.date)} · ${escapeHtml(typeLabels[item.type] || item.type)}</span>
+                <h3>${escapeHtml(item.title)}</h3>
+                <p>${escapeHtml(item.description || "ไม่มีรายละเอียด")}</p>
+                <small>${item.status === "published" ? "เผยแพร่" : "ฉบับร่าง"}</small>
+            </div>
+            <div class="admin-item-actions">
+                <button type="button" data-edit-calendar="${escapeHtml(item.id)}">แก้ไข</button>
+                <button class="danger" type="button" data-delete-calendar="${escapeHtml(item.id)}">ลบ</button>
+            </div>
+        </article>`).join("") : `<p class="news-empty">ยังไม่มีกิจกรรมที่แอดมินเพิ่ม</p>`;
+};
+
+const fillCalendarForm = (item) => {
+    if (!calendarForm) return;
+    calendarForm.elements.id.value = item.id;
+    calendarForm.elements.title.value = item.title || "";
+    calendarForm.elements.description.value = item.description || "";
+    calendarForm.elements.date.value = item.date || todayIsoDate();
+    calendarForm.elements.type.value = item.type || "school";
+    calendarForm.elements.status.value = item.status || "published";
+    calendarForm.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+const emptyLibraryForm = () => {
+    if (!libraryForm) return;
+    libraryForm.reset(); libraryForm.elements.id.value=""; libraryForm.elements.status.value="published";
+    libraryForm.elements.author.value=currentAdminName;
+    libraryForm.querySelector("[data-library-current-file]").innerHTML="การเพิ่มรายการใหม่จำเป็นต้องเลือกไฟล์ PDF";
+};
+const loadLibraryDocuments = async () => { const data=await apiRequest("admin_library.php?action=list"); dbLibraryDocuments=data.documents||[]; };
+const renderLibraryDocuments = () => {
+    if (!libraryList) return;
+    const labels={curriculum:"หลักสูตร/คู่มือ",student_form:"แบบฟอร์มนักศึกษา"};
+    libraryList.innerHTML=dbLibraryDocuments.length?dbLibraryDocuments.map(item=>`<article class="admin-news-item"><div><span>${escapeHtml(labels[item.category])} · อ่าน ${escapeHtml(item.views)} ครั้ง</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.originalName||"PDF")}</p><small>${item.status==="published"?"เผยแพร่":"ฉบับร่าง"}</small></div><div class="admin-item-actions"><button type="button" data-edit-library="${escapeHtml(item.id)}">แก้ไข</button><button class="danger" type="button" data-delete-library="${escapeHtml(item.id)}">ลบ</button></div></article>`).join(""):`<p class="news-empty">ยังไม่มีเอกสาร</p>`;
+};
+const fillLibraryForm = item => {
+    if(!item)return; libraryForm.elements.id.value=item.id; libraryForm.elements.category.value=item.category; libraryForm.elements.title.value=item.title; libraryForm.elements.description.value=item.description||""; libraryForm.elements.author.value=currentAdminName; libraryForm.elements.status.value=item.status; libraryForm.elements.pdfFile.value=""; libraryForm.querySelector("[data-library-current-file]").innerHTML=`<span class="current-file-label">ไฟล์ PDF ปัจจุบัน</span><strong>${escapeHtml(item.originalName||"PDF")}</strong><a href="${escapeHtml(item.pdfUrl)}" target="_blank" rel="noopener">เปิดดูไฟล์เดิม</a><small>หากไม่เลือกไฟล์ใหม่ ระบบจะใช้ไฟล์นี้ต่อไป</small>`; libraryForm.scrollIntoView({behavior:"smooth",block:"start"});
+};
+const emptyExamForm=()=>{if(!examForm)return;examForm.reset();examForm.elements.id.value="";examForm.elements.status.value="published";examForm.querySelector('[data-exam-current-images]').innerHTML="";toggleFormField(examForm.querySelector('[data-exam-image-manager]'),false);const cover=examForm.querySelector('[data-exam-cover-current]');cover.innerHTML='';cover.hidden=true;};
+const loadExamPosts=async()=>{const d=await apiRequest('admin_exams.php?action=list');dbExamPosts=d.posts||[];};
+const renderExamPosts=()=>{if(!examList)return;const labels={final:'ปลายภาคเรียน',nnet:'N-NET'};examList.innerHTML=dbExamPosts.length?dbExamPosts.map(x=>`<article class="admin-news-item"><div><span>${labels[x.type]} · ${x.images.length} รูป</span><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.summary)}</p><small>${x.status==='published'?'เผยแพร่':'ฉบับร่าง'}</small></div><div class="admin-item-actions"><button data-edit-exam="${x.id}">แก้ไข</button><button class="danger" data-delete-exam="${x.id}">ลบ</button></div></article>`).join(''):'<p class="news-empty">ยังไม่มีข้อมูลตารางสอบ</p>';};
+const fillExamForm=x=>{if(!x)return;examForm.elements.id.value=x.id;examForm.elements.type.value=x.type;examForm.elements.title.value=x.title;examForm.elements.summary.value=x.summary;examForm.elements.content.value=x.content||'';examForm.elements.status.value=x.status;examForm.elements.coverImage.value='';examForm.elements.contentImages.value='';const cover=examForm.querySelector('[data-exam-cover-current]');cover.innerHTML=x.coverImage?`<span class="current-file-label">ภาพหน้าปกปัจจุบัน</span><img src="${escapeHtml(x.coverImage)}?v=${Date.now()}" alt="ภาพหน้าปกเดิม"><a href="${escapeHtml(x.coverImage)}" target="_blank" rel="noopener">เปิดดูภาพขนาดเต็ม</a><small>หากไม่เลือกภาพใหม่ ระบบจะใช้ภาพนี้ต่อไป</small>`:'<span>ยังไม่มีภาพหน้าปก</span>';cover.hidden=false;const images=Array.isArray(x.images)?x.images:[];const box=examForm.querySelector('[data-exam-current-images]');box.innerHTML=images.length?images.map((img,i)=>`<label class="admin-image-row"><input type="checkbox" name="keepImageIds[]" value="${escapeHtml(img.id)}" checked><img src="${escapeHtml(img.url)}?v=${Date.now()}" alt="รูปที่ ${i+1}"><span>เก็บรูปที่ ${i+1}</span><a href="${escapeHtml(img.url)}" target="_blank" rel="noopener">เปิดดูรูปเดิม</a></label>`).join(''):'<p class="admin-empty-inline">ยังไม่มีรูปตารางในเนื้อหา</p>';const manager=examForm.querySelector('[data-exam-image-manager]');toggleFormField(manager,true);manager.hidden=false;box.style.display='grid';examForm.scrollIntoView({behavior:'smooth',block:'start'});};
+const emptyRegistrationForm=()=>{if(!registrationForm)return;registrationForm.reset();registrationForm.elements.id.value='';registrationForm.elements.status.value='published';registrationForm.querySelectorAll('[data-registration-current]').forEach(x=>{x.hidden=true;x.innerHTML='';});};
+const loadRegistrationPlans=async()=>{const d=await apiRequest('admin_registration.php?action=list');dbRegistrationPlans=d.plans||[];};
+const renderRegistrationPlans=()=>{if(!registrationList)return;registrationList.innerHTML=dbRegistrationPlans.length?dbRegistrationPlans.map(x=>`<article class="admin-news-item"><div><span>PDF ${Object.values(x.files).filter(f=>f.url).length}/3 ไฟล์</span><h3>${escapeHtml(x.title)}</h3><p>${escapeHtml(x.description||'')}</p><small>${x.status==='published'?'เผยแพร่':'ฉบับร่าง'}</small></div><div class="admin-item-actions"><button data-edit-registration="${x.id}">แก้ไข</button><button class="danger" data-delete-registration="${x.id}">ลบ</button></div></article>`).join(''):'<p class="news-empty">ยังไม่มีแผนการลงทะเบียน</p>';};
+const fillRegistrationForm=x=>{if(!x)return;registrationForm.elements.id.value=x.id;registrationForm.elements.title.value=x.title;registrationForm.elements.description.value=x.description||'';registrationForm.elements.status.value=x.status;['primary','lower','upper'].forEach(level=>{const box=registrationForm.querySelector(`[data-registration-current="${level}"]`),file=x.files[level];box.hidden=false;box.innerHTML=file?.url?`<span class="current-file-label">ไฟล์ปัจจุบัน</span><strong>${escapeHtml(file.name||'PDF')}</strong><a href="${escapeHtml(file.url)}" target="_blank" rel="noopener">เปิดดูไฟล์เดิม</a><small>หากไม่เลือกไฟล์ใหม่ ระบบจะใช้ไฟล์นี้ต่อไป</small>`:'<span>ยังไม่มีไฟล์ระดับนี้</span>';});registrationForm.scrollIntoView({behavior:'smooth',block:'start'});};
+const loadSiteNoticeSettings = async () => {
+    if (!siteNoticeForm) return;
+    const data = await apiRequest("admin_site_settings.php?action=get");
+    siteNoticeForm.elements.noticeText.value = data.settings?.noticeText || "";
+};
+
 const loadDashboard = async () => {
     requireAdmin();
     emptyForm();
     emptyMemberForm();
+    emptyCalendarForm();
+    emptyLibraryForm();
+    emptyExamForm();
+    emptyRegistrationForm();
 
     try {
         await loadNews();
         renderAdminList();
+        if (libraryForm) libraryForm.elements.author.value = currentAdminName;
     } catch (error) {
         if (list) list.innerHTML = `<p class="news-empty">โหลดข่าวจากฐานข้อมูลไม่สำเร็จ: ${escapeHtml(error.message || "Database error")}</p>`;
         setStatus(error.message || "โหลดข่าวจากฐานข้อมูลไม่สำเร็จ");
@@ -523,6 +668,18 @@ const loadDashboard = async () => {
         if (memberList) memberList.innerHTML = `<p class="news-empty">โหลดสมาชิก Admin ไม่สำเร็จ: ${escapeHtml(error.message || "Database error")}</p>`;
         setStatus(error.message || "โหลดสมาชิก Admin ไม่สำเร็จ", memberStatusText);
     }
+
+    try {
+        await loadCalendarEvents();
+        renderCalendarEvents();
+    } catch (error) {
+        if (calendarList) calendarList.innerHTML = `<p class="news-empty">โหลดปฏิทินไม่สำเร็จ: ${escapeHtml(error.message)}</p>`;
+    }
+
+    try { await loadLibraryDocuments(); renderLibraryDocuments(); } catch(error) { if(libraryList) libraryList.innerHTML=`<p class="news-empty">โหลดคลังเอกสารไม่สำเร็จ: ${escapeHtml(error.message)}</p>`; }
+    try { await loadExamPosts(); renderExamPosts(); } catch(error) { if(examList) examList.innerHTML=`<p class="news-empty">โหลดตารางสอบไม่สำเร็จ</p>`; }
+    try { await loadRegistrationPlans(); renderRegistrationPlans(); } catch(error) { if(registrationList) registrationList.innerHTML='<p class="news-empty">โหลดแผนการลงทะเบียนไม่สำเร็จ</p>'; }
+    try { await loadSiteNoticeSettings(); } catch(error) { setStatus(error.message || "โหลดประกาศหน้าแรกไม่สำเร็จ", siteNoticeStatus); }
 
     await renderAuditLogs(1);
 };
@@ -631,6 +788,76 @@ if (memberForm) {
     });
 }
 
+if (calendarForm) {
+    calendarForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const body = Object.fromEntries(new FormData(calendarForm).entries());
+        try {
+            const data = await apiRequest("admin_calendar.php?action=save", { method: "POST", body: JSON.stringify(body) });
+            await loadCalendarEvents();
+            renderCalendarEvents();
+            emptyCalendarForm();
+            setStatus(data.message, calendarStatus);
+            await renderAuditLogs(1);
+        } catch (error) {
+            setStatus(error.message || "บันทึกกิจกรรมไม่สำเร็จ", calendarStatus);
+        }
+    });
+}
+
+if (libraryForm) libraryForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    try { const data=await apiRequest("admin_library.php?action=save",{method:"POST",body:new FormData(libraryForm)}); await loadLibraryDocuments(); renderLibraryDocuments(); emptyLibraryForm(); setStatus(data.message,libraryStatus); await renderAuditLogs(1); }
+    catch(error){setStatus(error.message||"บันทึกเอกสารไม่สำเร็จ",libraryStatus);}
+});
+if (libraryList) libraryList.addEventListener("click", async event => {
+    const editId=event.target.dataset.editLibrary, deleteId=event.target.dataset.deleteLibrary;
+    if(editId) fillLibraryForm(dbLibraryDocuments.find(item=>item.id===editId));
+    if(deleteId){const item=dbLibraryDocuments.find(entry=>entry.id===deleteId);if(!item||!confirm(`ต้องการลบ "${item.title}" ใช่หรือไม่`))return;try{const data=await apiRequest("admin_library.php?action=delete",{method:"POST",body:JSON.stringify({id:deleteId})});await loadLibraryDocuments();renderLibraryDocuments();emptyLibraryForm();setStatus(data.message,libraryStatus);await renderAuditLogs(1);}catch(error){setStatus(error.message,libraryStatus);}}
+});
+if(examForm)examForm.addEventListener('submit',async e=>{e.preventDefault();try{const d=await apiRequest('admin_exams.php?action=save',{method:'POST',body:new FormData(examForm)});await loadExamPosts();renderExamPosts();emptyExamForm();setStatus(d.message,examStatus);await renderAuditLogs(1);}catch(err){setStatus(err.message||'บันทึกไม่สำเร็จ',examStatus);}});
+if(examList)examList.addEventListener('click',async e=>{const edit=e.target.dataset.editExam,del=e.target.dataset.deleteExam;if(edit)fillExamForm(dbExamPosts.find(x=>x.id===edit));if(del){const x=dbExamPosts.find(i=>i.id===del);if(!x||!confirm(`ต้องการลบ "${x.title}" ใช่หรือไม่`))return;try{const d=await apiRequest('admin_exams.php?action=delete',{method:'POST',body:JSON.stringify({id:del})});await loadExamPosts();renderExamPosts();emptyExamForm();setStatus(d.message,examStatus);await renderAuditLogs(1);}catch(err){setStatus(err.message,examStatus);}}});
+if(registrationForm)registrationForm.addEventListener('submit',async e=>{e.preventDefault();try{const d=await apiRequest('admin_registration.php?action=save',{method:'POST',body:new FormData(registrationForm)});await loadRegistrationPlans();renderRegistrationPlans();emptyRegistrationForm();setStatus(d.message,registrationStatus);await renderAuditLogs(1);}catch(err){setStatus(err.message||'บันทึกไม่สำเร็จ',registrationStatus);}});
+if(registrationList)registrationList.addEventListener('click',async e=>{const edit=e.target.dataset.editRegistration,del=e.target.dataset.deleteRegistration;if(edit)fillRegistrationForm(dbRegistrationPlans.find(x=>x.id===edit));if(del){const x=dbRegistrationPlans.find(i=>i.id===del);if(!x||!confirm(`ต้องการลบ "${x.title}" ใช่หรือไม่`))return;try{const d=await apiRequest('admin_registration.php?action=delete',{method:'POST',body:JSON.stringify({id:del})});await loadRegistrationPlans();renderRegistrationPlans();emptyRegistrationForm();setStatus(d.message,registrationStatus);await renderAuditLogs(1);}catch(err){setStatus(err.message,registrationStatus);}}});
+if (siteNoticeForm) {
+    siteNoticeForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const formData = new FormData(siteNoticeForm);
+        try {
+            const data = await apiRequest("admin_site_settings.php?action=save", {
+                method: "POST",
+                body: JSON.stringify({ noticeText: getFormValue(formData, "noticeText") })
+            });
+            setStatus(data.message || "บันทึกประกาศหน้าแรกเรียบร้อยแล้ว", siteNoticeStatus);
+            await renderAuditLogs(1);
+        } catch (error) {
+            setStatus(error.message || "บันทึกประกาศหน้าแรกไม่สำเร็จ", siteNoticeStatus);
+        }
+    });
+}
+
+if (calendarList) {
+    calendarList.addEventListener("click", async (event) => {
+        const editId = event.target.dataset.editCalendar;
+        const deleteId = event.target.dataset.deleteCalendar;
+        if (editId) fillCalendarForm(dbCalendarEvents.find((item) => item.id === editId));
+        if (deleteId) {
+            const item = dbCalendarEvents.find((entry) => entry.id === deleteId);
+            if (!item || !window.confirm(`ต้องการลบ "${item.title}" ใช่หรือไม่`)) return;
+            try {
+                const data = await apiRequest("admin_calendar.php?action=delete", { method: "POST", body: JSON.stringify({ id: deleteId }) });
+                await loadCalendarEvents();
+                renderCalendarEvents();
+                emptyCalendarForm();
+                setStatus(data.message, calendarStatus);
+                await renderAuditLogs(1);
+            } catch (error) {
+                setStatus(error.message || "ลบกิจกรรมไม่สำเร็จ", calendarStatus);
+            }
+        }
+    });
+}
+
 if (memberList) {
     memberList.addEventListener("click", async (event) => {
         const editId = event.target.dataset.editAdmin;
@@ -711,6 +938,10 @@ form.elements.type.addEventListener("change", () => {
     configureNewsTypeFields(form.elements.type.value);
 });
 document.querySelector("[data-reset-admin-member]").addEventListener("click", emptyMemberForm);
+document.querySelector("[data-reset-calendar]")?.addEventListener("click", emptyCalendarForm);
+document.querySelector("[data-reset-library]")?.addEventListener("click", emptyLibraryForm);
+document.querySelector("[data-reset-exam]")?.addEventListener("click", emptyExamForm);
+document.querySelector("[data-reset-registration]")?.addEventListener("click", emptyRegistrationForm);
 document.querySelector("[data-clear-audit-log]").addEventListener("click", () => renderAuditLogs(historyPage));
 document.querySelector("[data-admin-logout]").addEventListener("click", () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);

@@ -73,6 +73,20 @@ function fetch_public_news_documents(array $newsIds): array
     return $documents;
 }
 
+function fetch_public_news_images(array $newsIds): array
+{
+    $ids = array_values(array_unique(array_filter(array_map('intval', $newsIds))));
+    if (!$ids) return [];
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = db()->prepare("SELECT id, news_item_id, image_url, alt_text FROM news_images WHERE news_item_id IN ({$placeholders}) ORDER BY sort_order ASC, id ASC");
+    $stmt->execute($ids);
+    $images = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $images[(string)$row['news_item_id']][] = ['id'=>(string)$row['id'], 'url'=>$row['image_url'], 'alt'=>$row['alt_text'] ?? ''];
+    }
+    return $images;
+}
+
 try {
     $stmt = db()->query(
         'SELECT *
@@ -83,8 +97,9 @@ try {
 
     $rows = $stmt->fetchAll();
     $documentsByNewsId = fetch_public_news_documents(array_column($rows, 'id'));
+    $imagesByNewsId = fetch_public_news_images(array_column($rows, 'id'));
 
-    $items = array_map(static function (array $row) use ($documentsByNewsId): array {
+    $items = array_map(static function (array $row) use ($documentsByNewsId, $imagesByNewsId): array {
         $documents = $documentsByNewsId[(string)$row['id']] ?? [];
         if (!$documents) {
             $legacyDocument = document_from_legacy_fields($row);
@@ -104,6 +119,7 @@ try {
             'documentUrl' => $row['document_url'] ?? '',
             'documentName' => $row['document_name'] ?? '',
             'documents' => $documents,
+            'contentImages' => $imagesByNewsId[(string)$row['id']] ?? [],
             'announcementNo' => $row['announcement_no'] ?? '',
             'displayStatus' => $row['display_status'] ?? '',
             'metaOne' => $row['meta_one'] ?? '',

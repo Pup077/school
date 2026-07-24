@@ -73,6 +73,17 @@ CREATE TABLE news_documents (
     INDEX idx_news_document_item (news_item_id, sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE news_images (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    news_item_id INT UNSIGNED NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    alt_text VARCHAR(255) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_news_image_item FOREIGN KEY (news_item_id) REFERENCES news_items(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    INDEX idx_news_image_item (news_item_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE admin_activity_logs (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     admin_user_id INT UNSIGNED NULL,
@@ -90,6 +101,93 @@ CREATE TABLE admin_activity_logs (
     INDEX idx_activity_admin_user (admin_user_id),
     INDEX idx_activity_target (target_type, target_id),
     INDEX idx_activity_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE calendar_events (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    event_date DATE NOT NULL,
+    event_type ENUM('school', 'holiday', 'important') NOT NULL DEFAULT 'school',
+    status ENUM('draft', 'published') NOT NULL DEFAULT 'published',
+    created_by INT UNSIGNED NULL,
+    updated_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_calendar_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_calendar_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    INDEX idx_calendar_date_status (event_date, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE library_documents (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    category ENUM('curriculum', 'student_form') NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    description TEXT NULL,
+    pdf_url VARCHAR(500) NOT NULL,
+    original_name VARCHAR(255) NULL,
+    author VARCHAR(150) NULL,
+    view_count INT UNSIGNED NOT NULL DEFAULT 0,
+    status ENUM('draft', 'published') NOT NULL DEFAULT 'published',
+    created_by INT UNSIGNED NULL,
+    updated_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_library_created_by FOREIGN KEY (created_by) REFERENCES admin_users(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_library_updated_by FOREIGN KEY (updated_by) REFERENCES admin_users(id) ON UPDATE CASCADE ON DELETE SET NULL,
+    INDEX idx_library_category_status (category, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE exam_posts (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    exam_type ENUM('final','nnet') NOT NULL,
+    title VARCHAR(500) NOT NULL,
+    summary TEXT NOT NULL,
+    content LONGTEXT NULL,
+    cover_image VARCHAR(500) NULL,
+    status ENUM('draft','published') NOT NULL DEFAULT 'published',
+    created_by INT UNSIGNED NULL, updated_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_exam_type_status(exam_type,status),
+    CONSTRAINT fk_exam_created_by FOREIGN KEY(created_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_exam_updated_by FOREIGN KEY(updated_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE exam_post_images (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    exam_post_id INT UNSIGNED NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    alt_text VARCHAR(255) NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_exam_image_post FOREIGN KEY(exam_post_id) REFERENCES exam_posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    INDEX idx_exam_image(exam_post_id,sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE registration_plans (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    description TEXT NULL,
+    primary_pdf VARCHAR(500) NULL, primary_name VARCHAR(255) NULL,
+    lower_pdf VARCHAR(500) NULL, lower_name VARCHAR(255) NULL,
+    upper_pdf VARCHAR(500) NULL, upper_name VARCHAR(255) NULL,
+    status ENUM('draft','published') NOT NULL DEFAULT 'published',
+    created_by INT UNSIGNED NULL, updated_by INT UNSIGNED NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_registration_created_by FOREIGN KEY(created_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT fk_registration_updated_by FOREIGN KEY(updated_by) REFERENCES admin_users(id) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE site_settings (
+    setting_key VARCHAR(80) PRIMARY KEY,
+    setting_value TEXT NULL,
+    updated_by INT UNSIGNED NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_site_settings_updated_by
+        FOREIGN KEY (updated_by) REFERENCES admin_users(id)
+        ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO admin_users (username, password_hash, full_name, role)

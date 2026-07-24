@@ -1,0 +1,4 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/includes/exam_schema.php'; header('Content-Type: application/json; charset=utf-8'); header('Cache-Control:no-store');
+try { ensure_exam_schema(); $type=($_GET['type']??'')==='nnet'?'nnet':'final'; $s=db()->prepare('SELECT id,title,summary,cover_image,updated_at FROM exam_posts WHERE exam_type=:type AND status="published" ORDER BY updated_at DESC,id DESC'); $s->execute(['type'=>$type]); echo json_encode(['ok'=>true,'posts'=>array_map(static fn($r)=>['id'=>(string)$r['id'],'title'=>$r['title'],'summary'=>$r['summary'],'coverImage'=>$r['cover_image']??'','updatedAt'=>$r['updated_at']],$s->fetchAll())],JSON_UNESCAPED_UNICODE); } catch(Throwable $e){http_response_code(500);echo json_encode(['ok'=>false,'message'=>'โหลดข้อมูลไม่สำเร็จ'],JSON_UNESCAPED_UNICODE);}

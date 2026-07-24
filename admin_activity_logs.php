@@ -16,7 +16,14 @@ try {
     $page = max(1, (int)($_GET['page'] ?? 1));
     $perPage = 5;
     $offset = ($page - 1) * $perPage;
-    $allowedActions = ['login', 'logout', 'create_news', 'update_news', 'delete_news'];
+    $allowedActions = [
+        'login', 'logout', 'create_news', 'update_news', 'delete_news',
+        'create_admin', 'update_admin', 'delete_admin',
+        'create_calendar', 'update_calendar', 'delete_calendar',
+        'create_library', 'update_library', 'delete_library',
+        'create_exam', 'update_exam', 'delete_exam',
+        'create_registration', 'update_registration', 'delete_registration'
+    ];
     $placeholders = implode(',', array_fill(0, count($allowedActions), '?'));
 
     $countStmt = db()->prepare("SELECT COUNT(1) FROM admin_activity_logs WHERE action IN ({$placeholders})");
